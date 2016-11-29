@@ -239,7 +239,7 @@ module aerosol_thermodynamics
 	!----------------------------------------------------------------------------------
 	!
 	!VALUE INITIALISATION
-	henrys_temp_dep = (1/temp - 1/298d0)
+	henrys_temp_dep = (1./temp - 1./298.d0)
 
 	HCL_hno3=1.0d0;H2SO4_hno3=1.0d0;NH42SO4_hno3=1.0d0;NH4NO3_hno3=1.0d0;NH4Cl_hno3=1.0d0;
 	Na2SO4_hno3=1.0d0;NaNO3_hno3=1.0d0;NaCl_hno3=1.0d0;

@@ -54,7 +54,7 @@ CONTAINS
     REAL(dp) :: zvpart, znfrac, zvfrac, zVrat, zVilo, zVihi, zVexc, zvdec
     LOGICAL  :: within_bins
     INTEGER :: count
-
+    
     DO jj = 1,klev
        DO ii = 1,kproma
           
@@ -75,7 +75,7 @@ CONTAINS
                    IF (kk == fn2a) CYCLE 
 
                    ! Dry volume
-                   zvpart = sum(paero(ii,jj,kk)%volc(1:5))/paero(ii,jj,kk)%numc
+                   zvpart = sum(paero(ii,jj,kk)%volc(1:7))/paero(ii,jj,kk)%numc
 
                    ! Smallest bin cannot decrease
                    IF (paero(ii,jj,kk)%vlolim > zvpart .AND. kk == in1a) CYCLE
@@ -122,11 +122,11 @@ CONTAINS
                    !-- volume
                    paero(ii,jj,mm)%volc(:) = paero(ii,jj,mm)%volc(:) &
                         + znfrac * paero(ii,jj,kk)%numc * zVexc * paero(ii,jj,kk)%volc(:) / &
-                        sum(paero(ii,jj,kk)%volc(1:5))
+                        sum(paero(ii,jj,kk)%volc(1:7))
 
                    paero(ii,jj,kk)%volc(:) = paero(ii,jj,kk)%volc(:) &
                         - znfrac * paero(ii,jj,kk)%numc * zVexc * paero(ii,jj,kk)%volc(:) / &
-                        sum(paero(ii,jj,kk)%volc(1:5))
+                        sum(paero(ii,jj,kk)%volc(1:7))
 
                    !-- number
                    paero(ii,jj,mm)%numc = paero(ii,jj,mm)%numc + znfrac * paero(ii,jj,kk)%numc
@@ -136,8 +136,12 @@ CONTAINS
                 END IF ! nlim
 
                 IF ( paero(ii,jj,kk)%numc > nlim ) THEN
-                   zvpart = sum(paero(ii,jj,kk)%volc(1:5))/paero(ii,jj,kk)%numc
+                   zvpart = sum(paero(ii,jj,kk)%volc(1:7))/paero(ii,jj,kk)%numc
                    IF(zvpart > paero(ii,jj,kk)%vhilim) within_bins = .FALSE.
+                   IF(zvpart > paero(ii,jj,kk)%vhilim) THEN
+                      write(6,*) kk
+                   END IF
+                   
                 END IF
 
              END DO ! - kk

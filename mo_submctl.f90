@@ -24,7 +24,7 @@ MODULE mo_submctl
   PUBLIC :: oldupdate, debug
 
   !SALSA:
-  PUBLIC :: locgas, lsol2b, act_coeff,nj3
+  PUBLIC :: locgas, lsol2b, act_coeff,nj3, time
 
   PUBLIC :: in1a,in2a,in2b,fn1a,fn2a,fn2b,nbins
   PUBLIC :: nbin, nbin2, nbin3,reglim,nlim,prlim,nreg
@@ -187,6 +187,8 @@ MODULE mo_submctl
   REAL(dp) :: volDistB(maxspec) = (/0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0/)
   ! Number fraction allocated to a-bins in regime 2 (b-bins will get 1-nf2a)
   REAL(dp) :: nf2a = 1.0   
+
+  REAL(dp) :: time 
 
   INTEGER :: isdtyp = 0  ! Type of input aerosol size distribution: 0 - Uniform 
                          !                                          1 - Read vertical profile of the mode 
