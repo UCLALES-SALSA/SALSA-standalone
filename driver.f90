@@ -124,7 +124,7 @@ PROGRAM driver
     REAL(dp)    :: pa_gaerop(pnz,pnx,pny,5),           &  ! Gaseous tracers [# kg]
                    tstep                                  ! time step
 
-    INTEGER     :: str(n4), fnl(n4), nc(n4)
+    INTEGER     :: str(n4), fnl(n4), nc(n4), iReason
 
     LOGICAL     :: dbg2
 
@@ -270,7 +270,7 @@ PROGRAM driver
   
   icounter = 1
 
-  DO ii = 1, 197
+  DO ii = 1, 100000
 
      time = real(ii,dp)
 
@@ -434,7 +434,9 @@ PROGRAM driver
                     pa_Rcwet,   pa_Rpwet,   pa_rhop,    prunmode,    &
                     prtcl,      tstep,      dbg2                     )
 
-     READ(9,*) temperature, pressure, relative_humidity
+     READ(9,*,IOSTAT=iReason) temperature, pressure, relative_humidity
+
+     IF(iReason < 0) STOP 'End of input.dat file reached. Simulation ends normally.'     
 
      ptp1    = temperature
      papp1   = pressure*100._dp

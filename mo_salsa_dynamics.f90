@@ -1172,9 +1172,11 @@ CONTAINS
 
     write(15,*) time,paero(1,1,in1a:fn2a)%volc(7)/(mnh/rhonh)+2._dp/3._dp*paero(1,1,in1a:fn2a)%volc(1)/(mnh/rhonh)/&
          (log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
-         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)),sum(paero(1,1,:)%volc(7))/(mnh/rhonh)+pcnh3/avog
+         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
+         (sum(paero(1,1,:)%volc(7))+sum(pcloud(1,1,:)%volc(7))+sum(pprecp(1,1,:)%volc(7)))/(mnh/rhonh)+pcnh3/avog
     write(16,*) time,paero(1,1,in1a:fn2a)%volc(6)/(mno/rhono)/(log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
-         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)),sum(paero(1,1,:)%volc(6))/(mno/rhono)+pchno3/avog
+         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
+         (sum(paero(1,1,:)%volc(6))+sum(pcloud(1,1,:)%volc(6))+sum(pprecp(1,1,:)%volc(6)))/(mno/rhono)+pchno3/avog
 
        
   END SUBROUTINE condensation
@@ -1362,6 +1364,10 @@ CONTAINS
 
                 ! Water activity
                 zact = acth2o(paero(ii,jj,cc))
+! DEBUG START
+                CALL thermoequil(paero(ii,jj,cc),1,ptemp(ii,jj), zhlp4(cc), zhlp5(cc), zaw(cc))
+                zact = zaw(cc)
+! DEBUG END               
                 testi(cc) = zact
 !                write(*,*) zact 
                 ! Ssaturation mole concentration over flat surface
@@ -1424,6 +1430,11 @@ CONTAINS
                    zcwintae(cc) = zcwcae(cc) + min(max(adt*zmtae(cc)*(zcwint - zwsatae(cc)*zcwsurfae(cc)), &
                         -0.02*zcwcae(cc)),0.05*zcwcae(cc))  
                    zwsatae(cc) = acth2o(paero(ii,jj,cc),zcwintae(cc))*zkelvin(cc)
+! DEBUG START
+                   CALL thermoequil(paero(ii,jj,cc),1,ptemp(ii,jj), zhlp4(cc), zhlp5(cc), zaw(cc))
+                   zwsatae(cc) = zaw(cc)*zkelvin(cc)
+! DEBUG END               
+
                 END DO
              END IF
              IF ( ANY(pcloud(ii,jj,:)%numc > nlim) ) THEN
@@ -1632,6 +1643,7 @@ CONTAINS
     adtc2(:,:) = 0._dp
 
     DO jj = 1,klev
+
        DO ii = 1,kproma
 
           zkelno3pd = 1._dp
@@ -1657,22 +1669,22 @@ CONTAINS
 
           ! Kelvin effects
           zkelwa_ae(1:nbins) = exp( 4._dp*surfw0*mvwa /  &
-                                    (boltz*ptemp(ii,jj)*paero(ii,jj,1:nbins)%dwet) ) 
+               (boltz*ptemp(ii,jj)*paero(ii,jj,1:nbins)%dwet) ) 
 
           zkelno3ae(1:nbins) = exp( 4._dp*surfw0*mvno /  &
-                                    (boltz*ptemp(ii,jj)*paero(ii,jj,1:nbins)%dwet) ) 
+               (boltz*ptemp(ii,jj)*paero(ii,jj,1:nbins)%dwet) ) 
           zkelnh3ae(1:nbins) = exp( 4._dp*surfw0*mvnh /  &
-                                    (boltz*ptemp(ii,jj)*paero(ii,jj,1:nbins)%dwet) )
+               (boltz*ptemp(ii,jj)*paero(ii,jj,1:nbins)%dwet) )
 
           zkelno3cd(1:ncld) = exp( 4._dp*surfw0*mvno /  & 
-                                   (boltz*ptemp(ii,jj)*pcloud(ii,jj,1:ncld)%dwet) )
+               (boltz*ptemp(ii,jj)*pcloud(ii,jj,1:ncld)%dwet) )
           zkelnh3cd(1:ncld) = exp( 4._dp*surfw0*mvnh /  &
-                                   (boltz*ptemp(ii,jj)*pcloud(ii,jj,1:ncld)%dwet) )
+               (boltz*ptemp(ii,jj)*pcloud(ii,jj,1:ncld)%dwet) )
 
           zkelno3pd(1:nprc) = exp( 4._dp*surfw0*mvno /  &
-                                   (boltz*ptemp(ii,jj)*pprecp(ii,jj,1:nprc)%dwet) )
+               (boltz*ptemp(ii,jj)*pprecp(ii,jj,1:nprc)%dwet) )
           zkelnh3pd(1:nprc) = exp( 4._dp*surfw0*mvnh /  &
-                                   (boltz*ptemp(ii,jj)*pprecp(ii,jj,1:nprc)%dwet) )
+               (boltz*ptemp(ii,jj)*pprecp(ii,jj,1:nprc)%dwet) )
 
           ! Current gas concentrations
           zcno3c = pghno3(ii,jj)/avog
@@ -1690,31 +1702,31 @@ CONTAINS
 
           ! Total concentrations
           zcno3tot = zcno3c + SUM(zcno3cae(1:nbins)) +   &
-                              SUM(zcno3ccd(1:ncld))       +   &
-                              SUM(zcno3cpd(1:nprc))
+               SUM(zcno3ccd(1:ncld))       +   &
+               SUM(zcno3cpd(1:nprc))
 
           zcnh3tot = zcnh3c + SUM(zcnh3cae(1:nbins)) +   &
-                              SUM(zcnh3ccd(1:ncld))       +   &
-                              SUM(zcnh3cpd(1:nprc))
+               SUM(zcnh3ccd(1:ncld))       +   &
+               SUM(zcnh3cpd(1:nprc))
 
           ! Mass transfer coefficients 
           zmtno3ae = 0._dp; zmtnh3ae = 0._dp
           zmtno3cd = 0._dp; zmtnh3cd = 0._dp
           zmtno3pd = 0._dp; zmtnh3pd = 0._dp
           zmtno3ae(1:nbins) = 2._dp*pi*paero(ii,jj,1:nbins)%dwet *  &
-                              zdfvap*paero(ii,jj,1:nbins)%numc*pbeta(ii,jj,1:nbins)
+               zdfvap*paero(ii,jj,1:nbins)%numc*pbeta(ii,jj,1:nbins)
           zmtnh3ae(1:nbins) = 2._dp*pi*paero(ii,jj,1:nbins)%dwet *  &
-                              zdfvap*paero(ii,jj,1:nbins)%numc*pbeta(ii,jj,1:nbins)
+               zdfvap*paero(ii,jj,1:nbins)%numc*pbeta(ii,jj,1:nbins)
 
           zmtno3cd(1:ncld) = 2._dp*pi*pcloud(ii,jj,1:ncld)%dwet *  &
-                             zdfvap*pcloud(ii,jj,1:ncld)%numc*pbetaca(1:ncld)
+               zdfvap*pcloud(ii,jj,1:ncld)%numc*pbetaca(1:ncld)
           zmtnh3cd(1:ncld) = 2._dp*pi*pcloud(ii,jj,1:ncld)%dwet *  &
-                             zdfvap*pcloud(ii,jj,1:ncld)%numc*pbetaca(1:ncld)
-          
+               zdfvap*pcloud(ii,jj,1:ncld)%numc*pbetaca(1:ncld)
+
           zmtno3pd(1:nprc) = 2._dp*pi*pprecp(ii,jj,1:nprc)%dwet *  &
-                             zdfvap*pprecp(ii,jj,1:nprc)%numc*pbetapa(1:nprc)
+               zdfvap*pprecp(ii,jj,1:nprc)%numc*pbetapa(1:nprc)
           zmtnh3pd(1:nprc) = 2._dp*pi*pprecp(ii,jj,1:nprc)%dwet *  &
-                             zdfvap*pprecp(ii,jj,1:nprc)%numc*pbetapa(1:nprc)
+               zdfvap*pprecp(ii,jj,1:nprc)%numc*pbetapa(1:nprc)
 
           zrh = prv(ii,jj)/prs(ii,jj)
 
@@ -1722,126 +1734,238 @@ CONTAINS
           zmolscd = 0._dp
           zmolspd = 0._dp
 
-             ! Get the equilibrium concentrations
+          ! Get the equilibrium concentrations
 
-             ! aerosols
-             CALL thermoequil(paero(ii,jj,:),nbins,ptemp(ii,jj), zcgno3eqae, zcgnh3eqae, zaw)
-             ! cloud droplets
-             CALL thermoequil(pcloud(ii,jj,:),ncld,ptemp(ii,jj), zcgno3eqcd, zcgnh3eqcd, zaw)
-             ! precipitation
-             CALL thermoequil(pprecp(ii,jj,:),nprc,ptemp(ii,jj), zcgno3eqpd, zcgnh3eqpd, zaw)
-            
-             adt = ptstep
-             
-             ! 1) Condensation / evaporation of HNO3 
-             
-             zsum1 = 0._dp
-             zsum2 = 0._dp
-             zcno3nae = 0._dp
-             
-             ! aerosol bins
-             DO cc = 1, nbins
-                
-                IF (paero(ii,jj,cc)%numc > nlim) THEN
-                   
-                   zHp_ae(cc,1) = 1.e0_dp
-                   
-                   IF(zcgno3eqae(cc) > 0._dp) zHp_ae(cc,1) = zcno3cae(cc)/zcgno3eqae(cc)
-                                      
-                   zexpterm_ae(cc) = exp(-adt*zkelno3ae(cc)*zmtno3ae(cc)/zHp_ae(cc,1)) ! exponent term in Eq (17.104)
-                                                                            
-                   zsum1 = zsum1 + zcno3cae(cc)*(1._dp-zexpterm_ae(cc))               ! sum term in Eq (17.104) numerator
-                   zsum2 = zsum2 + zHp_ae(cc,1)/zkelno3ae(cc)*(1._dp-zexpterm_ae(cc)) ! sum term in Eq (17.104) denominator
-                   
-                END IF
-                
-             END DO
-             
-             ! cloud bins
-             DO cc = 1, ncld
-                
-                IF (paero(ii,jj,cc)%numc > nlim) THEN
-                   
-                   zHp_ae(cc,1) = 1.e0_dp
-                   
-                   IF(zcgno3eqae(cc) > 0._dp) zHp_ae(cc,1) = zcno3cae(cc)/zcgno3eqae(cc)
-                                      
-                   zexpterm_ae(cc) = exp(-adt*zkelno3ae(cc)*zmtno3ae(cc)/zHp_ae(cc,1)) ! exponent term in Eq (17.104)
-                                                                            
-                   zsum1 = zsum1 + zcno3cae(cc)*(1._dp-zexpterm_ae(cc))               ! sum term in Eq (17.104) numerator
-                   zsum2 = zsum2 + zHp_ae(cc,1)/zkelno3ae(cc)*(1._dp-zexpterm_ae(cc)) ! sum term in Eq (17.104) denominator
-                   
-                END IF
-                
-             END DO
-             
-             zcno3n = (zcno3c + zsum1)/(1._dp  + zsum2) ! Eq (17.104)
-             
-             DO cc = 1, nbins
-                
-                !aerosol bins
-                IF (paero(ii,jj,cc)%numc > nlim) THEN
-                   
-                   zcno3nae(cc) = zHp_ae(cc,1)*zcno3n/zkelno3ae(cc) +                & ! (17.102)
-                        (zcno3cae(cc) - zHp_ae(cc,1)*zcno3n/zkelno3ae(cc))*zexpterm_ae(cc)
-                   
-                   paero(ii,jj,1:nbins)%volc(6) = zcno3nae(1:nbins)*mno/rhono
-                   
-                END IF
-                
-             END DO
+          ! aerosols
+          CALL thermoequil(paero(ii,jj,:),nbins,ptemp(ii,jj), zcgno3eqae, zcgnh3eqae, zaw)
+          ! cloud droplets
+          CALL thermoequil(pcloud(ii,jj,:),ncld,ptemp(ii,jj), zcgno3eqcd, zcgnh3eqcd, zaw)
+          ! precipitation
+          CALL thermoequil(pprecp(ii,jj,:),nprc,ptemp(ii,jj), zcgno3eqpd, zcgnh3eqpd, zaw)
 
-             ! 2) Condensation / evaporation of NH3
-             
-             zsum1 = 0._dp
-             zsum2 = 0._dp
-             zcnh3nae = 0._dp
-             
-             DO cc = 1, nbins
-                
-                IF (paero(ii,jj,cc)%numc > nlim) THEN
-                   
-                   zHp_ae(cc,2) = 1.e0_dp
-                   
-                   IF(zcgnh3eqae(cc) > 0._dp) zHp_ae(cc,2) = zcnh3cae(cc)/zcgnh3eqae(cc)
-                   
-                   zexpterm_ae(cc)=exp(-adt*zkelnh3ae(cc)*zmtnh3ae(cc)/zHp_ae(cc,2))       ! exponent term in Eq (17.104)
-                   
-                   zsum1 = zsum1 + zcnh3cae(cc)*(1._dp-zexpterm_ae(cc))               ! sum term in Eq (17.104) numerator
-                   zsum2 = zsum2 + zHp_ae(cc,2)/zkelnh3ae(cc)*(1._dp-zexpterm_ae(cc)) ! sum term in Eq (17.104) denominator
-                   
-                END IF
-                
-             END DO
-             
-             zcnh3n = (zcnh3c + zsum1)/      & ! (17.104)
-                  (1._dp  + zsum2)
-             
-             DO cc = 1, nbins
-                
-                IF (paero(ii,jj,cc)%numc > nlim) THEN
-                   
-                   zcnh3nae(cc) = zHp_ae(cc,2)/zkelnh3ae(cc)*zcnh3n +                & ! (17.102)
-                        (zcnh3cae(cc) - zHp_ae(cc,2)/zkelnh3ae(cc)*zcnh3n)*zexpterm_ae(cc)
-                   
-                   paero(ii,jj,1:nbins)%volc(7) = zcnh3nae(1:nbins)*mnh/rhonh
-                   
-                END IF
-                
-             END DO
-             
-          ! Model timestep reached - update the new arrays
+          adt = ptstep
 
-           pghno3(ii,jj) = zcno3n*avog
-           pgnh3(ii,jj) = zcnh3n*avog
+          ! 1) Condensation / evaporation of HNO3 
 
-          !paero(ii,jj,1:nbins)%volc(6) = zcno3nae(1:nbins)*mno/rhono
-          !pcloud(ii,jj,1:ncld)%volc(6) = zcno3ncd(1:ncld)*mno/rhono
-          !pprecp(ii,jj,1:nprc)%volc(6) = zcno3npd(1:nprc)*mno/rhono
+          ! Initialization of variables
+          zsum1 = 0._dp
+          zsum2 = 0._dp
+          zcno3nae = 0._dp
 
-          !paero(ii,jj,1:nbins)%volc(7) = zcnh3nae(1:nbins)*mnh/rhonh
-          !pcloud(ii,jj,1:ncld)%volc(7) = zcnh3ncd(1:ncld)*mnh/rhonh
-          !pprecp(ii,jj,1:nprc)%volc(7) = zcnh3npd(1:nprc)*mnh/rhonh
+          ! aerosol bins
+          DO cc = 1, nbins
+
+             IF (paero(ii,jj,cc)%numc > nlim) THEN
+
+                zHp_ae(cc,1) = 1.e0_dp                                                ! initialization
+
+                IF(zcgno3eqae(cc) > 0._dp) zHp_ae(cc,1) = zcno3cae(cc)/zcgno3eqae(cc) ! (17.99)
+
+                zexpterm_ae(cc) = exp(-adt*zkelno3ae(cc)*zmtno3ae(cc)/zHp_ae(cc,1))   ! exponent term in Eq (17.104)
+
+                zsum1 = zsum1 + zcno3cae(cc)*(1._dp-zexpterm_ae(cc))                  ! sum term in Eq (17.104) numerator
+                zsum2 = zsum2 + zHp_ae(cc,1)/zkelno3ae(cc)*(1._dp-zexpterm_ae(cc))    ! sum term in Eq (17.104) denominator
+
+             END IF
+
+          END DO
+
+          ! cloud bins
+          DO cc = 1, ncld
+
+             IF (pcloud(ii,jj,cc)%numc > nlim) THEN
+
+                zHp_cd(cc,1) = 1.e0_dp                                                ! initialization
+
+                IF(zcgno3eqcd(cc) > 0._dp) zHp_cd(cc,1) = zcno3ccd(cc)/zcgno3eqcd(cc) ! (17.99)
+
+                zexpterm_cd(cc) = exp(-adt*zkelno3cd(cc)*zmtno3cd(cc)/zHp_cd(cc,1))   ! exponent term in Eq (17.104)
+
+                zsum1 = zsum1 + zcno3ccd(cc)*(1._dp-zexpterm_cd(cc))                  ! sum term in Eq (17.104) numerator
+                zsum2 = zsum2 + zHp_cd(cc,1)/zkelno3cd(cc)*(1._dp-zexpterm_cd(cc))    ! sum term in Eq (17.104) denominator
+
+             END IF
+
+          END DO
+
+          ! cloud bins
+          DO cc = 1, nprc
+
+             IF (pprecp(ii,jj,cc)%numc > prlim) THEN
+
+                zHp_pd(cc,1) = 1.e0_dp                                                ! initialization
+
+                IF(zcgno3eqpd(cc) > 0._dp) zHp_pd(cc,1) = zcno3cpd(cc)/zcgno3eqpd(cc) ! (17.99)
+
+                zexpterm_pd(cc) = exp(-adt*zkelno3pd(cc)*zmtno3pd(cc)/zHp_pd(cc,1))   ! exponent term in Eq (17.104)
+
+                zsum1 = zsum1 + zcno3cpd(cc)*(1._dp-zexpterm_pd(cc))                  ! sum term in Eq (17.104) numerator
+                zsum2 = zsum2 + zHp_pd(cc,1)/zkelno3pd(cc)*(1._dp-zexpterm_pd(cc))    ! sum term in Eq (17.104) denominator
+
+             END IF
+
+          END DO
+
+          ! update the gas phase concentration [mol/m3] of HNO3
+
+          zcno3n = (zcno3c + zsum1)/(1._dp  + zsum2) ! Eq (17.104)
+
+          ! update the particle phase concentration of NO3- in each bin
+
+          !aerosol bins
+          DO cc = 1, nbins
+
+             IF (paero(ii,jj,cc)%numc > nlim) THEN
+
+                zcno3nae(cc) = zHp_ae(cc,1)*zcno3n/zkelno3ae(cc) +                & ! (17.102)
+                     (zcno3cae(cc) - zHp_ae(cc,1)*zcno3n/zkelno3ae(cc))*zexpterm_ae(cc)
+
+                paero(ii,jj,cc)%volc(6) = zcno3nae(cc)*mno/rhono          ! convert to volume concentration
+
+             END IF
+
+          END DO
+
+          !cloud bins
+          DO cc = 1, ncld
+
+             IF (pcloud(ii,jj,cc)%numc > nlim) THEN
+
+                zcno3ncd(cc) = zHp_cd(cc,1)*zcno3n/zkelno3cd(cc) +                & ! (17.102)
+                     (zcno3ccd(cc) - zHp_cd(cc,1)*zcno3n/zkelno3cd(cc))*zexpterm_cd(cc)
+
+                pcloud(ii,jj,cc)%volc(6) = zcno3ncd(cc)*mno/rhono         ! convert to volume concentration
+
+             END IF
+
+          END DO
+
+          !precipitation bins
+          DO cc = 1, nprc
+
+             IF (pprecp(ii,jj,cc)%numc > prlim) THEN
+
+                zcno3npd(cc) = zHp_pd(cc,1)*zcno3n/zkelno3pd(cc) +                & ! (17.102)
+                     (zcno3cpd(cc) - zHp_pd(cc,1)*zcno3n/zkelno3pd(cc))*zexpterm_pd(cc)
+
+                pprecp(ii,jj,1:nprc)%volc(6) = zcno3npd(1:nprc)*mno/rhono         ! convert to volume concentration
+
+             END IF
+
+          END DO
+
+          ! 2) Condensation / evaporation of NH3
+
+          ! Initialization of variables
+          zsum1 = 0._dp
+          zsum2 = 0._dp
+          zcnh3nae = 0._dp
+
+          ! aerosol bins
+          DO cc = 1, nbins
+
+             IF (paero(ii,jj,cc)%numc > nlim) THEN
+
+                zHp_ae(cc,2) = 1.e0_dp                                                  ! initialize
+
+                IF(zcgnh3eqae(cc) > 0._dp) zHp_ae(cc,2) = zcnh3cae(cc)/zcgnh3eqae(cc)   ! (17.99)
+
+                zexpterm_ae(cc)=exp(-adt*zkelnh3ae(cc)*zmtnh3ae(cc)/zHp_ae(cc,2))       ! exponent term in Eq (17.104)
+
+                zsum1 = zsum1 + zcnh3cae(cc)*(1._dp-zexpterm_ae(cc))                    ! sum term in Eq (17.104) numerator
+                zsum2 = zsum2 + zHp_ae(cc,2)/zkelnh3ae(cc)*(1._dp-zexpterm_ae(cc))      ! sum term in Eq (17.104) denominator
+
+             END IF
+
+          END DO
+
+          !cloud bins
+          DO cc = 1, ncld
+
+             IF (pcloud(ii,jj,cc)%numc > nlim) THEN
+
+                zHp_cd(cc,2) = 1.e0_dp                                                  ! initialize
+
+                IF(zcgnh3eqcd(cc) > 0._dp) zHp_cd(cc,2) = zcnh3ccd(cc)/zcgnh3eqcd(cc)   ! (17.99)
+
+                zexpterm_cd(cc)=exp(-adt*zkelnh3cd(cc)*zmtnh3cd(cc)/zHp_cd(cc,2))       ! exponent term in Eq (17.104)
+
+                zsum1 = zsum1 + zcnh3ccd(cc)*(1._dp-zexpterm_cd(cc))                    ! sum term in Eq (17.104) numerator
+                zsum2 = zsum2 + zHp_cd(cc,2)/zkelnh3cd(cc)*(1._dp-zexpterm_cd(cc))      ! sum term in Eq (17.104) denominator
+
+             END IF
+
+          END DO
+
+          ! precipitation bins
+          DO cc = 1, nprc
+
+             IF (pprecp(ii,jj,cc)%numc > prlim) THEN
+
+                zHp_pd(cc,2) = 1.e0_dp                                                  ! initialize
+
+                IF(zcgnh3eqpd(cc) > 0._dp) zHp_pd(cc,2) = zcnh3cpd(cc)/zcgnh3eqpd(cc)   ! (17.99)
+
+                zexpterm_pd(cc)=exp(-adt*zkelnh3pd(cc)*zmtnh3pd(cc)/zHp_pd(cc,2))       ! exponent term in Eq (17.104)
+
+                zsum1 = zsum1 + zcnh3cpd(cc)*(1._dp-zexpterm_pd(cc))                    ! sum term in Eq (17.104) numerator
+                zsum2 = zsum2 + zHp_pd(cc,2)/zkelnh3pd(cc)*(1._dp-zexpterm_pd(cc))      ! sum term in Eq (17.104) denominator
+
+             END IF
+
+          END DO
+
+          ! update the gas phase concentration [mol/m3] of NH3
+
+          zcnh3n = (zcnh3c + zsum1)/      & ! (17.104)
+               (1._dp  + zsum2)
+
+          ! update the particle phase concentration of NH3 in each bin
+
+          ! aerosol bins
+          DO cc = 1, nbins
+
+             IF (paero(ii,jj,cc)%numc > nlim) THEN
+
+                zcnh3nae(cc) = zHp_ae(cc,2)/zkelnh3ae(cc)*zcnh3n +                & ! (17.102)
+                     (zcnh3cae(cc) - zHp_ae(cc,2)/zkelnh3ae(cc)*zcnh3n)*zexpterm_ae(cc)
+
+                paero(ii,jj,cc)%volc(7) = zcnh3nae(cc)*mnh/rhonh          ! convert to volume concentration
+
+             END IF
+
+          END DO
+
+          ! cloud bins
+          DO cc = 1, ncld
+
+             IF (pcloud(ii,jj,cc)%numc > nlim) THEN
+
+                zcnh3ncd(cc) = zHp_cd(cc,2)/zkelnh3cd(cc)*zcnh3n +                & ! (17.102)
+                     (zcnh3ccd(cc) - zHp_cd(cc,2)/zkelnh3cd(cc)*zcnh3n)*zexpterm_cd(cc)
+
+                pcloud(ii,jj,cc)%volc(7) = zcnh3ncd(cc)*mnh/rhonh           ! convert to volume concentration
+
+             END IF
+
+          END DO
+
+          ! precipitation bins
+          DO cc = 1, nprc
+
+             IF (pprecp(ii,jj,cc)%numc > prlim) THEN
+
+                zcnh3npd(cc) = zHp_pd(cc,2)/zkelnh3pd(cc)*zcnh3n +                & ! (17.102)
+                     (zcnh3cpd(cc) - zHp_pd(cc,2)/zkelnh3pd(cc)*zcnh3n)*zexpterm_pd(cc)
+
+                pprecp(ii,jj,cc)%volc(7) = zcnh3npd(cc)*mnh/rhonh           ! convert to volume concentration
+
+             END IF
+
+          END DO
+
+          pghno3(ii,jj) = zcno3n*avog    ! convert gas phase concentration to #/m3
+          pgnh3(ii,jj) = zcnh3n*avog     !      "
 
        END DO
 
@@ -2080,27 +2204,20 @@ CONTAINS
 
     USE mo_kind, ONLY    : dp
 
-!<testing
     USE aerosol_thermodynamics, ONLY : inorganic_pdfite
-!>
+
     IMPLICIT NONE
 
-!<testing
-    INTEGER, PARAMETER :: NCmax=3, NAmax=5, NNmax=1
-    REAL(dp) :: MOLAL(-NAmax:NCmax) 
     LOGICAL  :: detailed_thermo
     REAL(dp) :: zions(7)                ! mol/m3
 
     REAL(dp) :: zwatertotal,        &   ! Total water in particles (mol/m3) ???
                chcl,                &
                zgammas(7)              ! Activity coefficients
-!>
 
     INTEGER :: cc
     INTEGER, INTENT(in) :: nb
-!<testing
     REAL(dp) :: pmols(nb,7)
-!>
     REAL(dp) :: c_ions(7)
     REAL(dp), INTENT(in)  :: ptemp    
     REAL(dp), INTENT(out) :: chno3g(nb), cnh3g(nb), paw(nb)
@@ -2109,10 +2226,15 @@ CONTAINS
     REAL(dp) :: zKr, zKeq, dx, zcwl, zhlp
 
     REAL(dp), PARAMETER ::ztemp0   = 298.15_dp      ! Reference temperature (K)    
-!<testing
-    detailed_thermo = .true.                             ! 
+
+    ! choose how thermodynamical equilibrium is calculated
+    ! .true. for detailed PD-Fite calculations of activity coefficients
+    ! .false. for fast calculation, assuming ideality for all species
+    detailed_thermo = .true.                       
+
+    ! initialize
     pmols = 0._dp
-!>
+
     DO cc = 1, nb
     
        IF(ppart(cc)%numc > nlim) THEN
@@ -2148,14 +2270,8 @@ CONTAINS
                -4.0_dp*(c_ions(1)*c_ions(2)-c_ions(3)*zKr)))/2.0_dp
 
           IF (detailed_thermo) THEN
-             MOLAL     = 0.
-             MOLAL(-2) = c_ions(2) ! SO42-
-             MOLAL(-3) = c_ions(3) ! NO3-
-             MOLAL(2)  = MIN(2._dp*MOLAL(-2),c_ions(4)) ! NH4+ 
-             MOLAL(1)=   MOLAL(-3)+2._dp*MOLAL(-2)+MOLAL(-4)-MOLAL(2)
-             CALL THERMO(ptemp,MOLAL,chno3g(cc),cnh3g(cc),paw(cc))
 
-             zions(1) = zhlp !0._dp ! H+
+             zions(1) = zhlp                        ! H+
              zions(2) = ppart(cc)%volc(7)*rhonh/mnh ! NH4
              zions(3) = ppart(cc)%volc(5)*rhoss/mss ! Na
              zions(4) = ppart(cc)%volc(1)*rhosu/msu ! SO4
@@ -2165,9 +2281,13 @@ CONTAINS
 
              zcwl = ppart(cc)%volc(8)*rhowa/mwa
 
+             ! calculate thermodynamical equilibrium in the particle phase
              CALL inorganic_pdfite(0.9_dp,ptemp,zions,zcwl,chno3g(cc),chcl,cnh3g(cc),zgammas,pmols(cc,:))
+
              chno3g(cc)=chno3g(cc)/(rg*ptemp)
              cnh3g(cc) =cnh3g(cc)/(rg*ptemp)
+
+             paw(cc) = zcwl/(zcwl+zcwl*mwa*sum(pmols(cc,:)))
 
           ELSE
 
@@ -2192,9 +2312,9 @@ CONTAINS
              
              cnh3g(cc) = c_ions(4)*c_ions(1)/(cnh3g(cc)*zKr)                                                 !    "
              
-          END IF
+             paw(cc) = zcwl/(zcwl+sum(c_ions))
 
-          paw(cc) = zcwl/(zcwl+sum(c_ions))
+          END IF
 
        END IF
        
