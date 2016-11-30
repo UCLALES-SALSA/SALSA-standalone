@@ -270,7 +270,7 @@ PROGRAM driver
   
   icounter = 1
 
-  DO ii = 1, 100000
+  DO ii = 1, 1000000
 
      time = real(ii,dp)
 
@@ -418,10 +418,13 @@ PROGRAM driver
 
      rs = 0.622_dp*exp(20.386_dp-5132._dp/ptp1(pnz-1,pnx-2,pny-2))*133.32_dp/& 
           papp1(pnz-1,pnx-2,pny-2)!*pdn(pnz-1,pnx-2,pny-2)
-     str(2) = (nc(2)-1)*nbins
-     write(13,*) pa_Radry(pnz-1,pnx-2,pny-2,1:nbins)
-     write(14,*) pa_vaerop(pnz-1,pnx-2,pny-2,str(2)+1:str(2)+nbins)
-     write(6,*) pa_vaerop(pnz-1,pnx-2,pny-2,str(2)+1:str(2)+nbins)
+     str(2) = (nc(2)-1)
+     str(4) = (nc(4)-1)
+     write(13,*) pa_Rawet(pnz-1,pnx-2,pny-2,1:nbins),pa_Rcwet(pnz-1,pnx-2,pny-2,1:nbins),pa_Rpwet(pnz-1,pnx-2,pny-2,1:nbins)
+     write(14,*) time,pa_vaerop(pnz-1,pnx-2,pny-2,str(2)*nbins+1:str(2)*nbins+10), &
+                 pa_vcloudp(pnz-1,pnx-2,pny-2,str(2)*ncld+1:str(2)*ncld+ncld),   &
+                 pa_vcloudp(pnz-1,pnx-2,pny-2,str(2)*nprc+1:str(2)*nprc+nprc)
+     write(6,*) time
 
      CALL run_SALSA(pnx,        pny,        pnz,        n4,          &
                     papp1,      ptp1,       rv,         rt,          &
