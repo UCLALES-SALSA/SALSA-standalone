@@ -1170,13 +1170,13 @@ CONTAINS
     CALL gpparthno3(kproma,kbdim,klev,krow,ppres,ptemp,paero,pcloud,   &
          pprecp,pchno3,pcnh3,prv,prs,zbeta,zbetaca,zbetapa,ptstep     )
 
-    write(15,*) time,paero(1,1,in1a:fn2a)%volc(7)/(mnh/rhonh)+2._dp/3._dp*paero(1,1,in1a:fn2a)%volc(1)/(mnh/rhonh)/&
-         (log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
-         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
-         (sum(paero(1,1,:)%volc(7))+sum(pcloud(1,1,:)%volc(7))+sum(pprecp(1,1,:)%volc(7)))/(mnh/rhonh)+pcnh3/avog
-    write(16,*) time,paero(1,1,in1a:fn2a)%volc(6)/(mno/rhono)/(log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
-         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
-         (sum(paero(1,1,:)%volc(6))+sum(pcloud(1,1,:)%volc(6))+sum(pprecp(1,1,:)%volc(6)))/(mno/rhono)+pchno3/avog
+!    write(15,*) time,paero(1,1,in1a:fn2a)%volc(7)/(mnh/rhonh)+2._dp/3._dp*paero(1,1,in1a:fn2a)%volc(1)/(mnh/rhonh)/&
+!         (log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
+!         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
+!         (sum(paero(1,1,:)%volc(7))+sum(pcloud(1,1,:)%volc(7))+sum(pprecp(1,1,:)%volc(7)))/(mnh/rhonh)+pcnh3/avog
+!    write(16,*) time,paero(1,1,in1a:fn2a)%volc(6)/(mno/rhono)/(log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
+!         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
+!         (sum(paero(1,1,:)%volc(6))+sum(pcloud(1,1,:)%volc(6))+sum(pprecp(1,1,:)%volc(6)))/(mno/rhono)+pchno3/avog
 
        
   END SUBROUTINE condensation
@@ -1365,8 +1365,8 @@ CONTAINS
                 ! Water activity
                 zact = acth2o(paero(ii,jj,cc))
 ! DEBUG START
-                CALL thermoequil(paero(ii,jj,cc),1,ptemp(ii,jj), zhlp4(cc), zhlp5(cc), zaw(cc))
-                zact = zaw(cc)
+!                CALL thermoequil(paero(ii,jj,cc),1,ptemp(ii,jj), zhlp4(cc), zhlp5(cc), zaw(cc))
+!                zact = zaw(cc)
 ! DEBUG END               
                 testi(cc) = zact
 !                write(*,*) zact 
@@ -1431,8 +1431,8 @@ CONTAINS
                         -0.02*zcwcae(cc)),0.05*zcwcae(cc))  
                    zwsatae(cc) = acth2o(paero(ii,jj,cc),zcwintae(cc))*zkelvin(cc)
 ! DEBUG START
-                   CALL thermoequil(paero(ii,jj,cc),1,ptemp(ii,jj), zhlp4(cc), zhlp5(cc), zaw(cc))
-                   zwsatae(cc) = zaw(cc)*zkelvin(cc)
+!                   CALL thermoequil(paero(ii,jj,cc),1,ptemp(ii,jj), zhlp4(cc), zhlp5(cc), zaw(cc))
+!                   zwsatae(cc) = zaw(cc)*zkelvin(cc)
 ! DEBUG END               
 
                 END DO
