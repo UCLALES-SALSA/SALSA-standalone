@@ -55,7 +55,8 @@ MODULE class_componentIndex
       ELSE IF ( incomp == 'H2O' ) THEN
          GetIndex = SELF%ncomp + 1
       ELSE
-         STOP 'getIndex: FAILED, no such component - '
+         write(6,*) 'getIndex: FAILED, no such component - ', incomp
+         STOP
       END IF
 
       RETURN
