@@ -61,7 +61,7 @@ MODULE mo_submctl
             lsactiv,               &
             lsactbase,lsactintst
 
-  PUBLIC :: nspec, listspec, maxspec, nmod
+  PUBLIC :: nspec, listspec, maxspec, nmod, prcpfm
   PUBLIC :: sigmag, dpg, n, volDistA, volDistB, nf2a
   PUBLIC :: isdtyp
 
@@ -163,6 +163,11 @@ MODULE mo_submctl
                                     ! 9 = homomolecular nucleation of  H2SO4 and ORG + 
                                     !           heteromolecular nucleation with H2SO4*ORG
 
+  LOGICAL :: prcpfm   = .TRUE.      ! Choice of precipitation formation, works with switched off
+				    ! = .FALSE. no precipitation 
+				    ! = .TRUE. coagulation based formation 
+
+  LOGICAL :: lgcr       = .TRUE.    ! Calculate ionization due to galactic cosmic rays
   
   LOGICAL :: locgas = .FALSE.,&   ! emission of organic carbon in gas phase
              lsol2b = .FALSE.     ! repartitioning of insoluble material in 
@@ -343,7 +348,7 @@ MODULE mo_submctl
 
 
   REAL(dp), PARAMETER :: &
-   nlim = 1._dp,         & ! number conc. limit below which bin empty  [#/m3] 
+   nlim = 1.e-1_dp,         & ! number conc. limit below which bin empty  [#/m3] 
    prlim = 1.e-40_dp,     & ! The same for precipitation drops for which concentrations are normally much lower [#/m3]
    m3_2_um3 = 1.e+18_dp    ! conversion factor for volume from m3 to um3
 
