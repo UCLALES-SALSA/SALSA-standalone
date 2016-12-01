@@ -257,9 +257,13 @@ CONTAINS
 
     !IF (dbg2) WRITE(*,*) 'salsa4', SUM(paero(1,1,1:nbins)%numc)
 
-    IF (lsdistupdate) &
-         CALL distr_update(kproma, kbdim, klev,   &
-                           paero,  pcloud, pprecp )
+    DO jj = 1,3
+
+       IF (lsdistupdate) &
+            CALL distr_update(kproma, kbdim, klev,   &
+                              paero,  pcloud, pprecp )
+       
+    END DO
 
     !IF (dbg2) WRITE(*,*) 'salsa5', SUM(paero(1,1,1:nbins)%numc)
 
