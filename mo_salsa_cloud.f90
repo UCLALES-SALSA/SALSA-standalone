@@ -199,7 +199,6 @@ CONTAINS
 
        END DO
     END DO
-
     ! Get moles of solute at the middle of the bin
     CALL getSolute(kproma,kbdim,klev,paero,ns)
 
@@ -234,10 +233,11 @@ CONTAINS
              ntot = 0._dp
              sum1 = 0._dp
 
-             scrit(in1a:fn2b) = exp(sqrt(x/ns(ii,jj,in1a:fn2b))) - 1._dp
-
              !-- sums in equation (8), part 3
              ntot = ntot + SUM(paero(ii,jj,in1a:fn2b)%numc)
+
+             scrit(in1a:fn2b) = exp(sqrt(x/max(1.e-28,ns(ii,jj,in1a:fn2b)))) - 1._dp
+
              sum1 = sum1 + SUM(paero(ii,jj,in1a:fn2b)%numc/scrit(in1a:fn2b)**(2._dp/3._dp))
 
              IF(ntot < nlim) CYCLE
@@ -896,9 +896,10 @@ CONTAINS
 
              ! "Artificially" adjust the wet size of newly activated a little bit to prevent them from being
              ! evaporated immediately
+
              pactd(ii,jj,cb)%volc(8) = pactd(ii,jj,cb)%numc*pi6*(pdcrit(ii,jj,ab)**3) *  &
-                                       MIN(2._dp,(3.e-6_dp/pdcrit(ii,jj,ab))**2)
- 
+!                                       MIN(2._dp,(3.e-6_dp/pdcrit(ii,jj,ab))**2)
+                                       (3.e-6_dp/max(3.e-6_dp/sqrt(2._dp),pdcrit(ii,jj,ab)))**2
           END DO ! cb
 
        END DO ! ii
@@ -926,129 +927,7 @@ CONTAINS
 
 
 
-  !----------------------------------------- 
-  SUBROUTINE autoconv3(kproma,kbdim,klev,   &
-       pcloud,pprecp         )
-    ! 
-    ! Uses a more straightforward method for converting cloud droplets to drizzle.
-    ! Assume a lognormal cloud droplet distribution for each bin. Sigma_g is an adjustable
-    ! parameter and is set to 1.2 by default
-    ! 
-    USE mo_kind, ONLY : dp
-    USE mo_submctl, ONLY : t_section,   &
-         ica,fca,     &
-         icb,fcb,     &
-         ira,fra,     &
-         ncld,        &
-         nprc,        &
-         rhowa,       &
-         pi6,         &
-         nlim
-    USE mo_constants, ONLY : rd
-    IMPLICIT NONE
-    
-    INTEGER, INTENT(in) :: kproma,kbdim,klev
-    TYPE(t_section), INTENT(inout) :: pcloud(kbdim,klev,ncld)
-    TYPE(t_section), INTENT(inout) :: pprecp(kbdim,klev,nprc)
-    
-    REAL(dp) :: Vrem, Nrem, Vtot, Ntot, Nauto, Vauto
-    REAL(dp) :: dvg,dg, frac
-    
-    REAL(dp), PARAMETER :: zd0 = 50.e-6_dp
-    REAL(dp), PARAMETER :: sigmag = 1.2_dp
-    
-    INTEGER :: ii,jj,cc,ss
-    
-    ! Find the cloud bins where the mean droplet diameter is above 50 um
-    ! Do some fitting...
-    DO jj = 1,klev
-       DO ii = 1,kproma
-          DO cc = 1,ncld
-             
-             Vrem = 0._dp
-             Nrem = 0._dp
-             Ntot = 0._dp
-             Vtot = 0._dp
-             dvg = 0._dp
-             dg = 0._dp
-             Nauto = 0._dp
-             Vauto = 0._dp
-             
-             Ntot = pcloud(ii,jj,cc)%numc
-             Vtot = sum(pcloud(ii,jj,cc)%volc(:))
-             
-             IF ( Ntot > nlim ) THEN
-                !if (0.5*pcloud(ii,jj,cc)%dwet < 50.e-6) then
-                call lognormal_dist(pcloud(ii,jj,cc)%numc, 0.5*pcloud(ii,jj,cc)%dwet*1.e6, Nauto)
-                call lognormal_dist(pcloud(ii,jj,cc)%volc(8), 0.5*pcloud(ii,jj,cc)%dwet*1.e6, Vauto)
-                !else
-                !	Nauto = pcloud(ii,jj,cc)%numc
-                !	Vauto = pcloud(ii,jj,cc)%volc(8)
-                !	pcloud(ii,jj,cc)%volc(8) = 0._dp
-                !	pcloud(ii,jj,cc)%numc = 0._dp
-                
-                !endif
-                pprecp(ii,jj,1)%volc(8) = pprecp(ii,jj,1)%volc(8) + Vauto
-                pprecp(ii,jj,1)%numc = pprecp(ii,jj,1)%numc + Nauto
-                
-             ENDIF
-             
-          END DO ! cc
-       END DO ! ii                                                                                                                                                                
-    END DO ! jj
-    
-  END SUBROUTINE autoconv3
-  
-  subroutine lognormal_dist(G_tot, d_g, F_aut) 
-    
-    INTEGER :: NKR = 150, i
-    REAL(8), Dimension(150) :: m_cloud, r_cloud, D_cloud, dD_cloud, dlogD_cloud
-    REAL(8) :: rhocloud = 1000., PIE = 3.14159, pi6, pdf, pdf2
-    REAL(8) :: dn, G_tot, d_g, F_aut
-    REAL(8) :: coef, numer
-    REAL(8) :: sigma_l
-    sigma_l =log(1.05)
-    
-    !open(unit=12, file= 'distibution')
-    !**********************************************
-    !Mass distribution of cloud droplets
-    !**********************************************
-    m_cloud(1) = 1000.*(4./3.)*PIE*((1.e-7)**3.)
-    do i=2,NKR
-       m_cloud(i) = 1.22*m_cloud(i-1)
-    enddo
-    do i=1,NKR
-       r_cloud(i) = ((m_cloud(i)/rhocloud)/(4.*PIE/3.))**(1./3.)
-       D_cloud(i) = 2.*r_cloud(i)*1.e6
-    enddo
-    
-    dD_cloud(1) =  D_cloud(2) - D_cloud(1) 
-    dD_cloud(NKR) =  D_cloud(NKR) - D_cloud(NKR-1)
-    dlogD_cloud(1) =  log(D_cloud(2)) - log(D_cloud(1) )
-    dlogD_cloud(NKR) =  log(D_cloud(NKR)) - log(D_cloud(NKR-1))
-    do i=2,NKR-1
-       dD_cloud(i) = D_cloud(i) - D_cloud(i-1)
-       dlogD_cloud(i) = log(D_cloud(i+1)) - log(D_cloud(i-1))
-    enddo
-    
-    
-    pdf = 0.
-    pdf2 = 0.
-    do i=1,NKR-1
-       coef = G_tot*dD_cloud(i)/(D_cloud(i)*(2.*pie)**0.5*sigma_l)
-       numer = coef*exp(-1*(log(D_cloud(i)/D_g))**2./(2.*sigma_l**2.))
-       if (D_cloud(i) < 50.) then
-          pdf = pdf + numer
-       else
-          pdf2 = pdf2 + numer
-          numer = 0.
-       endif
-    enddo
-    G_tot = G_tot - pdf2
-    F_aut = pdf2
-  end subroutine lognormal_dist
-  
-  
+
   !----------------------------------------- 
   SUBROUTINE autoconv2(kproma,kbdim,klev,   &
                       pcloud,pprecp         )

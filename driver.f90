@@ -159,7 +159,7 @@ PROGRAM driver
   papp1   = pressure*100._dp         ! ambient pressure
 
   ! initialization
-
+  iReason = 1
   ! air density kg/m3
   pdn = mair*papp1(pnz-1,pnx-2,pny-2)/rg/ptp1(pnz-1,pnx-2,pny-2)
   ! Water vapor saturation mixing ratio (kg/m3)
@@ -176,8 +176,6 @@ PROGRAM driver
   c_hno3 = 8.4682e-15_dp*avog*1.e6_dp!5.E15_dp
   c_ocnv = 0._dp!5.E14_dp
   c_ocsv = 0._dp!1.E14_dp
-
-  write(6,*) c_hno3/avog/(papp1(pnz-1,pnx-2,pny-2)/(rg*temperature))
 
   ! runmode for initialization
   prunmode = 1
@@ -330,12 +328,12 @@ PROGRAM driver
                                               pa_vaerop(pnz-1,pnx-2,pny-2,str(3)+jj)/rhonh + & ! ammonia
                                               pa_vaerop(pnz-1,pnx-2,pny-2,str(4)+jj)/rhowa)/ & ! water
                                               pa_naerop(pnz-1,pnx-2,pny-2,jj)/pi6)**(1._dp/3._dp)/2._dp
-	ELSE
+ ELSE
 
            pa_Radry(pnz-1,pnx-2,pny-2,jj)  = rempty
            pa_Rawet(pnz-1,pnx-2,pny-2,jj)  = rempty
            pa_naerop(pnz-1,pnx-2,pny-2,jj) = vempty
-	   pa_vaerop(pnz-1,pnx-2,pny-2,jj) = vempty
+    pa_vaerop(pnz-1,pnx-2,pny-2,jj) = vempty
 
         END IF
 
@@ -358,25 +356,25 @@ PROGRAM driver
         nc(4) = GetIndex(prtcl,'H2O')
         str(4) = (nc(4)-1)*ncld
 
-	IF(pa_ncloudp(pnz-1,pnx-2,pny-2,jj) > nempty) THEN
-        	! calculate dry radius for cloud bins
-        	pa_Rcdry(pnz-1,pnx-2,pny-2,jj) = ((pa_vcloudp(pnz-1,pnx-2,pny-2,str(1)+jj)/rhosu + & ! sulfate
+ IF(pa_ncloudp(pnz-1,pnx-2,pny-2,jj) > nempty) THEN
+         ! calculate dry radius for cloud bins
+         pa_Rcdry(pnz-1,pnx-2,pny-2,jj) = ((pa_vcloudp(pnz-1,pnx-2,pny-2,str(1)+jj)/rhosu + & ! sulfate
                                                    pa_vcloudp(pnz-1,pnx-2,pny-2,str(2)+jj)/rhono + & ! nitrate
                                                    pa_vcloudp(pnz-1,pnx-2,pny-2,str(3)+jj)/rhonh)/ & ! ammonium
                                                    pa_ncloudp(pnz-1,pnx-2,pny-2,jj)/pi6)**(1._dp/3._dp)/2._dp
         
-        	! calculate wet radius for cloud bins
-        	pa_Rcwet(pnz-1,pnx-2,pny-2,jj) = ((pa_vcloudp(pnz-1,pnx-2,pny-2,str(1)+jj)/rhosu + & ! sulfate
+         ! calculate wet radius for cloud bins
+         pa_Rcwet(pnz-1,pnx-2,pny-2,jj) = ((pa_vcloudp(pnz-1,pnx-2,pny-2,str(1)+jj)/rhosu + & ! sulfate
                                                    pa_vcloudp(pnz-1,pnx-2,pny-2,str(2)+jj)/rhono + & ! water (!! hard coded index)
                                                    pa_vcloudp(pnz-1,pnx-2,pny-2,str(3)+jj)/rhonh + & ! water (!! hard coded index)
                                                    pa_vcloudp(pnz-1,pnx-2,pny-2,str(4)+jj)/rhowa) / & ! water (!! hard coded index)
-             		pa_ncloudp(pnz-1,pnx-2,pny-2,jj)/pi6)**(1._dp/3._dp)/2._dp
-	ELSE
-           	pa_Rcdry(pnz-1,pnx-2,pny-2,jj) = rempty
-           	pa_Rcwet(pnz-1,pnx-2,pny-2,jj) = rempty
-		pa_ncloudp(pnz-1,pnx-2,pny-2,jj) = vempty
-		pa_vcloudp(pnz-1,pnx-2,pny-2,jj) = vempty
-	END IF
+               pa_ncloudp(pnz-1,pnx-2,pny-2,jj)/pi6)**(1._dp/3._dp)/2._dp
+ ELSE
+            pa_Rcdry(pnz-1,pnx-2,pny-2,jj) = rempty
+            pa_Rcwet(pnz-1,pnx-2,pny-2,jj) = rempty
+  pa_ncloudp(pnz-1,pnx-2,pny-2,jj) = vempty
+  pa_vcloudp(pnz-1,pnx-2,pny-2,jj) = vempty
+ END IF
      END DO
 
      ! loop over prec bins
@@ -396,35 +394,35 @@ PROGRAM driver
         str(4) = (nc(4)-1)*nprc
 
 
-	IF(pa_nprecpp(pnz-1,pnx-2,pny-2,jj) > nempty) THEN
-           	! calculate dry radius for precipitation bins
-           	pa_Rpdry(pnz-1,pnx-2,pny-2,jj) = ((pa_vprecpp(pnz-1,pnx-2,pny-2,str(1)+jj)/rhosu + & ! sulfate
+ IF(pa_nprecpp(pnz-1,pnx-2,pny-2,jj) > nempty) THEN
+            ! calculate dry radius for precipitation bins
+            pa_Rpdry(pnz-1,pnx-2,pny-2,jj) = ((pa_vprecpp(pnz-1,pnx-2,pny-2,str(1)+jj)/rhosu + & ! sulfate
                                                    pa_vprecpp(pnz-1,pnx-2,pny-2,str(2)+jj)/rhono + & ! nitrate
                                                    pa_vprecpp(pnz-1,pnx-2,pny-2,str(3)+jj)/rhonh)/ & ! nitrate
                                                    pa_nprecpp(pnz-1,pnx-2,pny-2,jj)/pi6)**(1._dp/3._dp)/2._dp
-           	! calculate wet radius for precipitation bins
-           	pa_Rpwet(pnz-1,pnx-2,pny-2,jj) = ((pa_vprecpp(pnz-1,pnx-2,pny-2,str(1)+jj)/rhosu + & ! sulfate
+            ! calculate wet radius for precipitation bins
+            pa_Rpwet(pnz-1,pnx-2,pny-2,jj) = ((pa_vprecpp(pnz-1,pnx-2,pny-2,str(1)+jj)/rhosu + & ! sulfate
                                                    pa_vprecpp(pnz-1,pnx-2,pny-2,str(2)+jj)/rhono + & ! nitrate
                                                    pa_vprecpp(pnz-1,pnx-2,pny-2,str(3)+jj)/rhonh + & ! nitrate
                                                    pa_vprecpp(pnz-1,pnx-2,pny-2,str(4)+jj)/rhowa)/ & ! water
                                                    pa_nprecpp(pnz-1,pnx-2,pny-2,jj)/pi6)**(1._dp/3._dp)/2._dp
-	ELSE
-           	pa_Rpdry(pnz-1,pnx-2,pny-2,jj) = rempty
-           	pa_Rpwet(pnz-1,pnx-2,pny-2,jj) = rempty
-		pa_nprecpp(pnz-1,pnx-2,pny-2,jj) = vempty
-		pa_vprecpp(pnz-1,pnx-2,pny-2,jj) = vempty
-	END IF
+ ELSE
+            pa_Rpdry(pnz-1,pnx-2,pny-2,jj) = rempty
+            pa_Rpwet(pnz-1,pnx-2,pny-2,jj) = rempty
+  pa_nprecpp(pnz-1,pnx-2,pny-2,jj) = vempty
+  pa_vprecpp(pnz-1,pnx-2,pny-2,jj) = vempty
+END IF
      END DO
 
      rs = 0.622_dp*exp(20.386_dp-5132._dp/ptp1(pnz-1,pnx-2,pny-2))*133.32_dp/& 
           papp1(pnz-1,pnx-2,pny-2)!*pdn(pnz-1,pnx-2,pny-2)
      str(2) = (nc(2)-1)
      str(4) = (nc(4)-1)
-     write(13,*) pa_Rawet(pnz-1,pnx-2,pny-2,1:nbins),pa_Rcwet(pnz-1,pnx-2,pny-2,1:nbins),pa_Rpwet(pnz-1,pnx-2,pny-2,1:nbins)
+     write(13,*) pa_Rawet(pnz-1,pnx-2,pny-2,1:nbins),pa_Rcwet(pnz-1,pnx-2,pny-2,1:ncld),pa_Rpwet(pnz-1,pnx-2,pny-2,1:nprc)
      write(14,*) time,pa_vaerop(pnz-1,pnx-2,pny-2,str(2)*nbins+1:str(2)*nbins+10), &
                  pa_vcloudp(pnz-1,pnx-2,pny-2,str(2)*ncld+1:str(2)*ncld+ncld),   &
                  pa_vcloudp(pnz-1,pnx-2,pny-2,str(2)*nprc+1:str(2)*nprc+nprc)
-     write(6,*) time
+     write(6,*) time, temperature, rv(pnz-1,pnx-2,pny-2)/rs(pnz-1,pnx-2,pny-2)
 
      CALL run_SALSA(pnx,        pny,        pnz,        n4,          &
                     papp1,      ptp1,       rv,         rt,          &
@@ -437,7 +435,15 @@ PROGRAM driver
                     pa_Rcwet,   pa_Rpwet,   pa_rhop,    prunmode,    &
                     prtcl,      tstep,      dbg2                     )
 
-     READ(9,*,IOSTAT=iReason) temperature, pressure, relative_humidity
+!     READ(9,*,IOSTAT=iReason) temperature, pressure, relative_humidity
+     IF(time < 200._dp) THEN
+        temperature =temperature-0.02_dp
+     ELSE
+        temperature =temperature+0.02_dp
+     END IF
+
+     IF(time == 400._dp) STOP
+ 
 
      IF(iReason < 0) STOP 'End of input.dat file reached. Simulation ends normally.'     
 
