@@ -124,11 +124,13 @@ CONTAINS
          pi6,                        &
          rhosu,rhooc,rhono,rhonh,    &
          rhobc,rhodu,rhoss,rhowa,    &
-         nlim,prlim,                       &
-         lscgaa, lscgcc, lscgca, lscgpp, lscgpa, lscgpc
-    !USE mo_aero_mem_salsa, ONLY :    &
-    !     d_cond_so4,                 & ! diagnostic variable for condensated mass of so4
-    !     d_nuc_so4                     !diagnostic variable for nucleated mass of so4
+         nlim,prlim,                 &
+         lscgaa, lscgcc,             &
+         lscgca, lscgpp, 	     &
+	 lscgpa, lscgpc,             &
+         lsauto,prcpfm,              &
+         precpbins
+
     !USE mo_salsa_init, only: coagc
     !USE mo_salsa_init, ONLY : coagc
     USE mo_kind, ONLY : dp
@@ -155,7 +157,7 @@ CONTAINS
     INTEGER ::                      &
          ii,jj,kk,ll,mm,nn,cc,      & ! loop indices 
          index_2a, index_2b,        & ! corresponding bin in regime 2a/2b
-         index_cd                     ! corresponding bin in cloud droplet regime
+         index_cd,IBIN,I_target       ! corresponding bin in cloud droplet regime
 
     REAL(dp) ::                     &
          zntemp(kbdim,klev),        & ! variable for saving pnaero(fn2b) temporarily
@@ -186,7 +188,11 @@ CONTAINS
     !     zavol(kbdim,klev,fn2b)           ! Total volume concentration of aerosols
 
 
-    REAL(dp) :: t1,t2
+    REAL(dp) :: t1,t2,d0, mmt, prepnterm, cloudn_old, prepvterm, cloudv_old(8), 	&
+	num_coag(ncld), vol_cltd(7,8), vol_slf(7,8), qpart, dpart,R_new
+
+    REAL(dp) :: nbin
+
 
     IF (debug) WRITE(*,*) 'coagulation init'
 
@@ -458,6 +464,7 @@ CONTAINS
               
            END DO
 
+	if (prcpfm .eqv. .FALSE.) then 
            ! Cloud droplets, regime a
            ! ------------------------------------------------
            IF ( ANY(pcloud(ii,jj,:)%numc > nlim) ) THEN
@@ -562,6 +569,169 @@ CONTAINS
 
               END DO
            END IF ! nlim
+	end if
+
+ if (lsauto .eqv. .FALSE.) then 
+    if (prcpfm .eqv. .TRUE.) then 
+       ! Cloud droplets, regime a
+       ! ------------------------------------------------
+       
+       IF ( ANY(pcloud(ii,jj,:)%numc > nlim) ) THEN
+          DO cc = ica%cur,fca%cur
+             vol_cltd =  0.
+             vol_slf = 0.
+             num_coag = 0.
+          
+             zminusterm = 0._dp
+             zplusterm(:) = 0._dp
+      
+             d0 = 50.e-6
+             ! corresponding index for regime b cloud droplets
+             kk = MAX(cc-fca%cur+ncld,icb%cur) ! Regime a has more bins than b: 
+             ! Set this at minimum to beginnign of b.
+          
+             ! Droplets lost by those with larger nucleus in regime a
+             DO ll = cc+1,fca%cur
+                zminusterm = zminusterm + zcccc(cc,ll)*pcloud(ii,jj,ll)%numc
+             END DO
+          
+             ! Droplets lost by those with larger nucleus in regime b
+             DO ll = kk+1,fcb%cur
+                zminusterm = zminusterm + zcccc(cc,ll)*pcloud(ii,jj,ll)%numc
+             END DO
+          
+             ! Droplets lost by collection by rain drops
+             DO ll = 1,nprc
+                zminusterm = zminusterm + zccpc(cc,ll)*pprecp(ii,jj,ll)%numc
+             END DO
+          
+             ! Volume gained from cloud collection of aerosols
+             DO ll = in1a,fn2b
+                zplusterm(1:8) = zplusterm(1:8) + zccca(ll,cc)*paero(ii,jj,ll)%volc(1:8)
+             END DO
+          
+             ! Volume gained from smaller droplets in a
+             DO ll = ica%cur,cc-1  
+                ! IF SIZE LARGER THAN THE LIMIT, THEN MOVE THE MASS TO PRECIPITATION AND DO NOT ADD IT INTO CLOUD DROPLETS  
+             
+                R_new = 0.5*(pcloud(ii,jj,cc)%dwet**3+pcloud(ii,jj,ll)%dwet**3)**.333
+                  
+                IF (R_new > precpbins(1)) then  
+                   I_target=1
+                   DO IBIN=2,7
+                      IF(R_new > precpbins(IBIN)) I_target=IBIN
+                   ENDDO
+              
+                   vol_cltd(I_target,1:8)  = vol_cltd(I_target,1:8)+(pcloud(ii,jj,ll)%volc(1:8)*pcloud(ii,jj,cc)%numc + &
+                        pcloud(ii,jj,cc)%volc(1:8)*pcloud(ii,jj,ll)%numc)*zcccc(ll,cc)
+            
+                   num_coag(I_target) = num_coag(I_target) + &
+                        zcccc(cc,ll)*pcloud(ii,jj,ll)%numc*pcloud(ii,jj,cc)%numc
+                   
+                   zminusterm = zminusterm+ zcccc(cc,ll)*pcloud(ii,jj,ll)%numc
+                ELSE
+                   zplusterm(1:8) = zplusterm(1:8) + zcccc(ll,cc)*pcloud(ii,jj,ll)%volc(1:8)
+                ENDIF
+             END DO
+          
+          
+             ! Volume gained from smaller or equal droplets in b
+             DO ll = icb%cur,kk
+                zplusterm(1:8) = zplusterm(1:8) + zcccc(ll,cc)*pcloud(ii,jj,ll)%volc(1:8)
+             END DO
+          
+             ! store previous values
+             cloudv_old(8) = pcloud(ii,jj,cc)%volc(8)
+             cloudn_old = pcloud(ii,jj,cc)%numc
+
+
+             ! Update the hydrometeor volume concentrations
+             pcloud(ii,jj,cc)%volc(1:8) = ( pcloud(ii,jj,cc)%volc(1:8) +  &
+                  ptstep*zplusterm(1:8)*pcloud(ii,jj,cc)%numc ) /         &
+                  (1._dp + ptstep*zminusterm)
+                
+             ! Update the hydrometeor number concentration (Removal by coagulation with lrger bins and self)      
+             R_new = 0.5*(2.*pcloud(ii,jj,CC)%dwet**3)**.333
+             IF (R_new > precpbins(1)) THEN
+                pcloud(ii,jj,cc)%numc = pcloud(ii,jj,cc)%numc/( 1._dp + ptstep*zminusterm +  &
+                     ptstep*zcccc(cc,cc)*pcloud(ii,jj,cc)%numc )
+                pcloud(ii,jj,cc)%volc(1:8) = pcloud(ii,jj,cc)%volc(1:8) - &
+                     2.0*pcloud(ii,jj,cc)%volc(1:8)*pcloud(ii,jj,cc)%numc*zcccc(cc,cc)
+                I_target=1
+                DO IBIN=2,7
+                   IF(R_new > precpbins(IBIN)) I_target=IBIN
+                ENDDO
+                vol_slf(I_target,1:8) = vol_slf(I_target,1:8) + &
+                     2.0*pcloud(ii,jj,cc)%volc(1:8)*pcloud(ii,jj,cc)%numc*zcccc(cc,cc)
+                num_coag(I_target)=num_coag(I_target)+zcccc(cc,cc)*pcloud(ii,jj,cc)%numc**2
+             ELSE
+                pcloud(ii,jj,cc)%numc = pcloud(ii,jj,cc)%numc/( 1._dp + ptstep*zminusterm +  &
+                     0.5_dp*ptstep*zcccc(cc,cc)*pcloud(ii,jj,cc)%numc )
+             END IF
+             
+             !MAKE HERE A SMART SYSTEM TO FIND THE CORRECT BIN
+             DO ll = 1,nprc
+                pprecp(ii,jj,ll)%volc(1:8) = pprecp(ii,jj,ll)%volc(1:8) + &
+                     ptstep*(vol_cltd(ll,1:8) + vol_slf(ll,1:8))
+                
+                pprecp(ii,jj,ll)%numc = pprecp(ii,jj,ll)%numc + ptstep*num_coag(ll)
+             END DO
+          END DO
+          
+          ! Cloud droplets, regime b
+          ! -----------------------------------------
+          DO cc = icb%cur,fcb%cur
+             
+             zminusterm = 0._dp
+             zplusterm(:) = 0._dp
+             
+             ! corresponding index for regime a cloud droplets
+             kk = cc - ncld + fca%cur  
+             
+             ! Droplets lost by those with larger nucleus in regime b
+             DO ll = cc+1,fcb%cur
+                zminusterm = zminusterm + zcccc(cc,ll)*pcloud(ii,jj,ll)%numc
+             END DO
+             
+             ! Droplets lost by those with larger nucleus in regime a
+             DO ll = kk+1,fca%cur
+                zminusterm = zminusterm + zcccc(cc,ll)*pcloud(ii,jj,ll)%numc
+             END DO
+             
+             ! Droplets lost by collection by rain drops
+             DO ll = 1,nprc
+                zminusterm = zminusterm + zccpc(cc,ll)*pprecp(ii,jj,ll)%numc
+             END DO
+             
+             ! Volume gained from cloud collection of aerosols
+             DO ll = in1a,fn2b
+                zplusterm(1:8) = zplusterm(1:8) + zccca(ll,cc)*paero(ii,jj,ll)%volc(1:8)
+             END DO
+             
+             ! Volume gained from smaller droplets in b
+             DO ll = icb%cur,cc-1
+                zplusterm(1:8) = zplusterm(1:8) + zcccc(ll,cc)*pcloud(ii,jj,ll)%volc(1:8)
+             END DO
+             
+             ! Volume gained from smaller or equal droplets in a
+             DO ll = ica%cur,kk
+                zplusterm(1:8) = zplusterm(1:8) + zcccc(ll,cc)*pcloud(ii,jj,ll)%volc(1:8)
+             END DO
+             
+             ! Update the hydrometeor volume concentrations
+             pcloud(ii,jj,cc)%volc(1:8) = ( pcloud(ii,jj,cc)%volc(1:8) +  &
+                  ptstep*zplusterm(1:8)*pcloud(ii,jj,cc)%numc ) /         &
+                  (1._dp + ptstep*zminusterm)
+             
+             ! Update the hydrometeor number concentration (Removal by coagulation with lrger bins and self)      
+             pcloud(ii,jj,cc)%numc = pcloud(ii,jj,cc)%numc/( 1._dp + ptstep*zminusterm +  &
+                  0.5_dp*ptstep*zcccc(cc,cc)*pcloud(ii,jj,cc)%numc )
+             
+          END DO
+       END IF ! nlim
+    endif
+ endif
+
 
            ! Rain drops
            ! -----------------------------------
@@ -2299,8 +2469,11 @@ CONTAINS
           zrhoa = pres/(rd*temp)   ! Density of air
           zrhop = mpart/(pi6*diam**3)             ! Density of particles
           vkin = visc/zrhoa   ! Kinematic viscosity of air [m2 s-1]
-          termv = ( (diam**2) * (zrhop - zrhoa) * grav * beta )/( 18._dp*visc  ) ![m s-1]          
-
+          !IK
+          !termv = ( (diam**2) * (zrhop - zrhoa) * grav * beta )/( 18._dp*visc  ) ![m s-1]  
+          termv(1) = terminal_vel(diam(1)/2.,  zrhoa,Temp,pres)
+          termv(2) = terminal_vel(diam(2)/2.,  zrhoa,Temp,pres)
+          !IK
           ! Reynolds number
           reyn = diam*termv/vkin
           ! Schmidt number for the smaller particle
@@ -2332,8 +2505,8 @@ CONTAINS
           zgrav = zgrav * ABS(termv(1)-termv(2))
 
           ! Total coagulation kernel
-          coagc = zbrown  + zbrconv + zgrav
-
+          !coagc = (zbrown  + zbrconv + zgrav)
+	coagc = min(1.e-5,(zbrown  + zbrconv + zgrav))
     END SELECT
 
   END FUNCTION coagc
@@ -2468,5 +2641,65 @@ CONTAINS
     END DO
 
   END SUBROUTINE thermoequil
+
+  !
+  !This function is a hybrid parameterisation for the the terminal fall
+  !velocities of particles. It uses the existing iterative scheme 
+  !in the box model for particles smaller than 40 microns and a 
+  !corrected version of rogers and yau for larger sizes
+  !
+  
+  FUNCTION terminal_vel(part_radius, air_den,Temp,pres ) 
+    USE mo_kind, ONLY : dp
+    implicit none
+    REAL(dp), intent(in) :: part_radius, air_den,Temp,pres
+    REAL :: air_den_ref = 1.225	!reference air density
+    REAL(dp) :: terminal_vel	
+    
+    
+    IF (part_radius <= 8.e-5) then
+       terminal_vel = term_v_stock(part_radius,Temp,pres)
+    ELSE
+       terminal_vel  = 4.e3*part_radius*(air_den_ref/air_den)**(1./2.)
+    ENDIF
+    !terminal_vel = min(15.,terminal_vel)
+    
+  END FUNCTION terminal_vel
+  
+  
+!!!CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+!!!CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+!!!CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+!!!CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+  Function term_v_stock(r_1,Temp,pres)
+    !C ********************************************************************
+    !C          Function CALCULATES GRAVITATIONAL SETTLING VELOCITY       *
+    !C                                                                    *
+    !C ********************************************************************
+    USE mo_kind, ONLY : dp
+    USE mo_submctl,    ONLY : PI, pstand, grav,pi6
+    USE mo_constants, ONLY : rd
+    implicit none
+    REAL(dp), intent(in) :: r_1,Temp,pres
+    REAL(dp) :: mpart, zrhoa, zrhop, visc, mfp, knud, beta
+    REAL(dp) :: term_v_stock
+    
+    mpart = (4.0_dp/3.0_dp)*Pi*r_1**3*1000._dp
+    zrhoa = pres/(rd*temp)   ! Density of air
+    zrhop = mpart/(pi6*(2.*r_1)**3)             ! Density of particles
+    
+    visc = (7.44523e-3_dp*temp**1.5_dp)/ &
+         (5093._dp*(temp+110.4_dp))                   ! viscosity of air [kg/(m s)]
+    
+    mfp = (1.656e-10_dp*temp+1.828e-8_dp)*pstand/pres ! mean free path of air [m]
+    
+    knud = 2._dp*mfp/(2.*r_1)                                   ! Knudsen number
+    beta = 1._dp+knud*(1.142_dp+0.558_dp*exp(-0.999_dp/knud))! Cunningham correction factor
+        
+    term_v_stock = ( ((2.*r_1)**2) * (zrhop - zrhoa) * grav * beta )/( 18._dp*visc  ) ![m s-1] 
+         
+  END Function term_v_stock
+
 
 END MODULE mo_salsa_dynamics
