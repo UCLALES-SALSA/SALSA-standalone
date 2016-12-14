@@ -1174,8 +1174,6 @@ CONTAINS
     CALL gpparthno3(kproma,kbdim,klev,krow,ppres,ptemp,paero,pcloud,   &
          pprecp,pchno3,pcnh3,prv,prs,zbeta,zbetaca,zbetapa,ptstep     )
 
-    write(6,*) 'hep'
-
 !    write(15,*) time,paero(1,1,in1a:fn2a)%volc(7)/(mnh/rhonh)+2._dp/3._dp*paero(1,1,in1a:fn2a)%volc(1)/(mnh/rhonh)/&
 !         (log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
 !         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
