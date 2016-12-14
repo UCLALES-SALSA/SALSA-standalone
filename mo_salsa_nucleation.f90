@@ -106,7 +106,7 @@ CONTAINS
          avog,                   &
          rg,                     &
          pi,                     &
-		 reglim
+         reglim
     
     USE mo_kind,          ONLY : dp
 
@@ -993,8 +993,8 @@ CONTAINS
 
 	!------------------------------------------------------------------------------------------------
 	! loops over
-	DO jj = 1,klev !  vertical grid
-		DO ii = 1,kproma !  horizontal kproma in the slab
+    DO jj = 1,klev !  vertical grid
+       DO ii = 1,kproma !  horizontal kproma in the slab
 
           !-- 1) Checking that we are in the validity range of the parameterization -----------
           ! validity of parameterization : DO NOT REMOVE!
@@ -1267,7 +1267,7 @@ CONTAINS
    ! ---------------------------------------------------------------
    
    SUBROUTINE orgnucl(kproma,     kbdim,        klev,            &
-		      pc_org,     pnuc_rate,    pd_crit, ppbl,   &
+                      pc_org,     pnuc_rate,    pd_crit, ppbl,   &
                       pn_crit_sa, pn_crit_ocnv, pk_sa,   pk_ocnv)
 
      USE mo_kind, ONLY : dp
@@ -1602,7 +1602,7 @@ CONTAINS
         ELSE
            term1= term1*real(i,dp)
         END IF
-        term2= (real(i,dp)*(zm_para+1._dp)+1._dp)*term1 	
+        term2= (real(i,dp)*(zm_para+1._dp)+1._dp)*term1
         term3= zeta**i
         term4= term3/term2
         term5= real(i,dp)*(zm_para+1._dp)+1._dp

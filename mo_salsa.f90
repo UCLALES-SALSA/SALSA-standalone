@@ -226,14 +226,12 @@ CONTAINS
     !zrh(1:kproma,:) = prv(1:kproma,:)/prs(1:kproma,:)
 
     !---------------------------------------------------
-
     IF (lscoag) &
        CALL coagulation(kproma, kbdim,  klev,        &
                         paero,  pcloud, pprecp,      &
                         ptstep, ptemp,  ppres        )
 
     !IF (dbg2) WRITE(*,*) 'salsa1',SUM(paero(1,1,1:nbins)%numc)
-
     IF (lscnd) &
        CALL condensation(kproma,  kbdim,    klev,     krow,     & 
                          paero,   pcloud,   pprecp,   pc_h2so4, &
@@ -242,13 +240,11 @@ CONTAINS
                          zpbl,    prtcl                         )
 
     !IF (dbg2) WRITE(*,*) 'salsa2', SUM(paero(1,1,1:nbins)%numc)
-
     IF (lsauto) &
          CALL autoconv2(kproma,kbdim,klev, &
                         pcloud, pprecp     )
 
-    !IF (dbg2) WRITE(*,*) 'salsa3', SUM(paero(1,1,1:nbins)%numc)
-
+    !IF (dbg2) WRITE(*,*) 'salsa3', SUM(paero(1,1,1:nbins)%numc)  
     IF (lsactiv)  &
          CALL cloud_activation(kproma, kbdim, klev,   &
                                ptemp,  ppres, prv,    &
