@@ -418,11 +418,11 @@ END IF
           papp1(pnz-1,pnx-2,pny-2)!*pdn(pnz-1,pnx-2,pny-2)
      str(2) = (nc(2)-1)
      str(4) = (nc(4)-1)
-     write(13,*) pa_Rawet(pnz-1,pnx-2,pny-2,1:nbins),pa_Rcwet(pnz-1,pnx-2,pny-2,1:ncld),pa_Rpwet(pnz-1,pnx-2,pny-2,1:nprc)
+     write(13,*) pa_Radry(pnz-1,pnx-2,pny-2,1:nbins),pa_Rcwet(pnz-1,pnx-2,pny-2,1:ncld),pa_Rpwet(pnz-1,pnx-2,pny-2,1:nprc)
      write(14,*) time,pa_vaerop(pnz-1,pnx-2,pny-2,str(2)*nbins+1:str(2)*nbins+10), &
                  pa_vcloudp(pnz-1,pnx-2,pny-2,str(2)*ncld+1:str(2)*ncld+ncld),   &
                  pa_vcloudp(pnz-1,pnx-2,pny-2,str(2)*nprc+1:str(2)*nprc+nprc)
-     write(6,*) time, temperature, rv(pnz-1,pnx-2,pny-2)/rs(pnz-1,pnx-2,pny-2)
+!     write(6,*) time, temperature, rv(pnz-1,pnx-2,pny-2)/rs(pnz-1,pnx-2,pny-2)
 
      CALL run_SALSA(pnx,        pny,        pnz,        n4,          &
                     papp1,      ptp1,       rv,         rt,          &
@@ -435,14 +435,15 @@ END IF
                     pa_Rcwet,   pa_Rpwet,   pa_rhop,    prunmode,    &
                     prtcl,      tstep,      dbg2                     )
 
-!     READ(9,*,IOSTAT=iReason) temperature, pressure, relative_humidity
-     IF(time < 200._dp) THEN
-        temperature =temperature-0.02_dp
-     ELSE
-        temperature =temperature+0.02_dp
-     END IF
+    READ(9,*,IOSTAT=iReason) temperature, pressure, relative_humidity
 
-     IF(time == 400._dp) STOP
+!     IF(time < 200._dp) THEN
+!        temperature =temperature-0.02_dp
+!     ELSE
+!        temperature =temperature+0.02_dp
+!     END IF
+
+     IF(time == 400._dp) STOP 'Maximum time reached. Simulation ends normally.'
  
 
      IF(iReason < 0) STOP 'End of input.dat file reached. Simulation ends normally.'     
