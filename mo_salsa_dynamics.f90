@@ -2246,7 +2246,7 @@ CONTAINS
     ! equilibrium gas phase concentrations over a flat surface
     REAL(dp), INTENT(out) :: chno3g(nb), &
                              cnh3g(nb),  &
-                             ch2og(nb)   &
+                             ch2og(nb)   
     TYPE(t_section), INTENT(in) :: ppart(nb)
     
     REAL(dp) :: zKr,               & ! Equilibrium constants (see 
