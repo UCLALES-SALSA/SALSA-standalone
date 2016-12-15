@@ -1324,25 +1324,25 @@ CONTAINS
     zbetapa = 1._dp + zknpa*( 1.33_dp + (0.71_dp/zknpa) )/( 1._dp + (1._dp/zknpa) ) ! Rain drop + gas
     zbetapa = 1._dp/zbetapa
     
-    ! -- 5.4) HNO3/NH3
+    ! -- 5.4) Partitioning of H2O, HNO3, and NH3
 
-    CALL gpparthno3(kproma,kbdim,klev,krow,ppres,ptemp,paero,pcloud,   &
+    CALL partitioning(kproma,kbdim,klev,krow,ppres,ptemp,paero,pcloud,   &
          pprecp,pchno3,pcnh3,prv,prs,zbeta,zbetaca,zbetapa,ptstep     )
 
-    write(15,*) time,paero(1,1,in1a:fn2a)%volc(7)/(mnh/rhonh)+0.4399_dp*paero(1,1,in1a:fn2a)%volc(1)/(mnh/rhonh)/&
-         (log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
-         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
-         (sum(paero(1,1,:)%volc(7))+sum(pcloud(1,1,:)%volc(7))+sum(pprecp(1,1,:)%volc(7)))/(mnh/rhonh)+pcnh3/avog
-    write(16,*) time,paero(1,1,in1a:fn2a)%volc(6)/(mno/rhono)/(log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
-         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
-         (sum(paero(1,1,:)%volc(6))+sum(pcloud(1,1,:)%volc(6))+sum(pprecp(1,1,:)%volc(6)))/(mno/rhono)+pchno3/avog
+!    write(15,*) time,paero(1,1,in1a:fn2a)%volc(7)/(mnh/rhonh)+0.4399_dp*paero(1,1,in1a:fn2a)%volc(1)/(mnh/rhonh)/&
+!         (log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
+!         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
+!         (sum(paero(1,1,:)%volc(7))+sum(pcloud(1,1,:)%volc(7))+sum(pprecp(1,1,:)%volc(7)))/(mnh/rhonh)+pcnh3/avog
+!    write(16,*) time,paero(1,1,in1a:fn2a)%volc(6)/(mno/rhono)/(log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
+!         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
+!         (sum(paero(1,1,:)%volc(6))+sum(pcloud(1,1,:)%volc(6))+sum(pprecp(1,1,:)%volc(6)))/(mno/rhono)+pchno3/avog
       
   END SUBROUTINE condensation
 
 !
 ! ----------------------------------------------------------------------------------------------------------
 !
-  SUBROUTINE gpparthno3(kproma,kbdim,klev,krow,ppres,ptemp,paero,pcloud,    &
+  SUBROUTINE partitioning(kproma,kbdim,klev,krow,ppres,ptemp,paero,pcloud,    &
        pprecp,pghno3,pgnh3,prv,prs,pbeta,pbetaca,pbetapa,ptstep)
     USE mo_kind, ONLY : dp
     USE mo_submctl, ONLY : t_section,           &
@@ -1985,7 +1985,7 @@ CONTAINS
 
     END DO
 
-  END SUBROUTINE gpparthno3
+  END SUBROUTINE partitioning
 
 !
 ! ----------------------------------------------------------------------------------------------------------
@@ -2234,8 +2234,8 @@ CONTAINS
     REAL(dp) :: zions(7)                ! mol/m3
 
     REAL(dp) :: zwatertotal,        &   ! Total water in particles (mol/m3) ???
-               chcl,                &
-               zgammas(7)              ! Activity coefficients
+               chcl,                &   ! dummy variable for HCl concentration (not in use)
+               zgammas(7)               ! Activity coefficients
 
     INTEGER :: cc
     INTEGER, INTENT(in) :: nb
@@ -2243,10 +2243,17 @@ CONTAINS
     REAL(dp) :: pmols(nb,7)
     REAL(dp) :: c_ions(7)
     REAL(dp), INTENT(in)  :: ptemp    
-    REAL(dp), INTENT(out) :: chno3g(nb), cnh3g(nb), ch2og(nb)
+    ! equilibrium gas phase concentrations over a flat surface
+    REAL(dp), INTENT(out) :: chno3g(nb), 
+                             cnh3g(nb), 
+                             ch2og(nb)
     TYPE(t_section), INTENT(in) :: ppart(nb)
     
-    REAL(dp) :: zKr, zKeq, dx, zcwl, zhlp
+    REAL(dp) :: zKr,               & ! Equilibrium constants (see 
+                zKeq,              & ! Jacobson (1999),  Atmos Environ 33, 3635 - 3649), Table 3
+                dx,                & ! Change in ion concentration
+                zcwl,              & ! Liquid water mol/m3-air
+                zhlp                 !
 
     REAL(dp), PARAMETER ::ztemp0   = 298.15_dp      ! Reference temperature (K)    
 
@@ -2254,6 +2261,9 @@ CONTAINS
     ! .true. for detailed PD-Fite calculations of activity coefficients
     ! .false. for fast calculation, assuming ideality for all species
     detailed_thermo = .true.                       
+
+    ! If there is no HNO3, PD-Fite is not required
+    IF(sum(ppart(:)%volc(6)*rhono/mno) == 0._dp) detailed_thermo = .false.
 
     ! initialize
     pmols = 0._dp
@@ -2285,7 +2295,7 @@ CONTAINS
           zKeq = 1.02e-2_dp*EXP(8.84_dp*(ztemp0/ptemp-1.0_dp)+25.15_dp*(1._dp-ztemp0/ptemp+LOG(ztemp0/ptemp))) ! Table B7 
           
           ! Convert zKeq to zKr (molm-3) , Equation from Table 3 in Jacobson (1999) 
-          !                              Atmos Environ 33, 3635 - 3649                                      
+          !                                Atmos Environ 33, 3635 - 3649                                      
           zKr   = zKeq*(zcwl*mwa)
           ! Eq (17.13)
           dx = (-c_ions(2)-c_ions(1)-zKr &                                   ! Eq (17), Jacobson (1999)
@@ -2321,7 +2331,7 @@ CONTAINS
              
              ! vapor pressure of HNO3 at the droplet surface:
              
-             zKeq=2.5e6_dp*EXP(29.17_dp*(ztemp0/ptemp-1.0_dp)+16.83_dp*(1._dp-ztemp0/ptemp+LOG(ztemp0/ptemp)))/101325._dp ! Table B7 
+             zKeq=2.5e6_dp*EXP(29.17_dp*(ztemp0/ptemp-1.0_dp)+16.83_dp*(1._dp-ztemp0/ptemp+LOG(ztemp0/ptemp)))/101325._dp ! Table B.7 
              
              zKr = zKeq*(zcwl*mwa)**2*rg*ptemp                                                            ! Table 3 in Jacobson (1999) 
              
@@ -2329,7 +2339,7 @@ CONTAINS
              
              ! vapor pressure of NH3 at the droplet surface:
              
-             zKeq=2.58e17_dp*EXP(64.02_dp*(ztemp0/ptemp-1.0_dp)+11.44_dp*(1._dp-ztemp0/ptemp+LOG(ztemp0/ptemp)))/101325._dp**2 ! Table B7 
+             zKeq=2.58e17_dp*EXP(64.02_dp*(ztemp0/ptemp-1.0_dp)+11.44_dp*(1._dp-ztemp0/ptemp+LOG(ztemp0/ptemp)))/101325._dp**2 ! Table B.7 
              
              zKr = zKeq*(zcwl*mwa*rg*ptemp)**2                                                               ! Table 3 in Jacobson (1999) 
              
