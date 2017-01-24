@@ -2676,15 +2676,19 @@ CONTAINS
              
              zKr = zKeq*(zcwl*mwa)**2*rg*ptemp                                                            ! Table 3 in Jacobson (1999) 
              
-             chno3g(cc) = c_ions(4)*c_ions(1)/zKr                                                         !    "
+             chno3g(cc) = 0._dp
+
+             IF(c_ions(4) > 0._dp) chno3g(cc) = c_ions(4)*c_ions(1)/zKr                                   !    "
              
              ! vapor pressure of NH3 at the droplet surface:
              
              zKeq=2.58e17_dp*EXP(64.02_dp*(ztemp0/ptemp-1.0_dp)+11.44_dp*(1._dp-ztemp0/ptemp+LOG(ztemp0/ptemp)))/101325._dp**2 ! Table B.7 
              
-             zKr = zKeq*(zcwl*mwa*rg*ptemp)**2                                                               ! Table 3 in Jacobson (1999) 
+             zKr = zKeq*(zcwl*mwa*rg*ptemp)**2                                                            ! Table 3 in Jacobson (1999) 
              
-             cnh3g(cc) = c_ions(4)*c_ions(1)/(cnh3g(cc)*zKr)                                                 !    "
+             cnh3g(cc) = 0._dp
+             
+             IF(chno3g(cc) > 0._dp) cnh3g(cc) = c_ions(4)*c_ions(1)/(chno3g(cc)*zKr)                      !    "
              
              ch2og(cc) = zcwl/(zcwl+sum(c_ions))*satvaph2o(ptemp)/(rg*ptemp)
 
