@@ -2100,7 +2100,10 @@ CONTAINS
 
                 zmtno3ae(cc) = 2._dp*pi*paero(ii,jj,cc)%dwet *  &                     ! (16.64)
                      zdfvap*paero(ii,jj,cc)%numc*pbeta(ii,jj,cc)
-                zexpterm_ae(cc) = exp(-adt*zkelno3ae(cc)*zmtno3ae(cc)/zHp_ae(cc,1))   ! exponent term in Eq (17.104)
+
+                zhlp3 = max(-200._dp,-adt*zkelno3ae(cc)*zmtno3ae(cc)/zHp_ae(cc,1))
+
+                zexpterm_ae(cc) = exp(zhlp3)                                          ! exponent term in Eq (17.104)
 
                 zsum1 = zsum1 + zcno3cae(cc)*(1._dp-zexpterm_ae(cc))                  ! sum term in Eq (17.104) numerator
                 zsum2 = zsum2 + zHp_ae(cc,1)/zkelno3ae(cc)*(1._dp-zexpterm_ae(cc))    ! sum term in Eq (17.104) denominator
@@ -2120,7 +2123,10 @@ CONTAINS
 
                 zmtno3cd(cc) = 2._dp*pi*pcloud(ii,jj,cc)%dwet *  &
                      zdfvap*pcloud(ii,jj,cc)%numc*pbetaca(cc)
-                zexpterm_cd(cc) = exp(-adt*zkelno3cd(cc)*zmtno3cd(cc)/zHp_cd(cc,1))   ! exponent term in Eq (17.104)
+
+                zhlp3 = max(-200._dp,-adt*zkelno3cd(cc)*zmtno3cd(cc)/zHp_cd(cc,1))
+
+                zexpterm_cd(cc) = exp(zhlp3)                                          ! exponent term in Eq (17.104)
 
                 zsum1 = zsum1 + zcno3ccd(cc)*(1._dp-zexpterm_cd(cc))                  ! sum term in Eq (17.104) numerator
                 zsum2 = zsum2 + zHp_cd(cc,1)/zkelno3cd(cc)*(1._dp-zexpterm_cd(cc))    ! sum term in Eq (17.104) denominator
@@ -2140,7 +2146,10 @@ CONTAINS
 
                 zmtno3pd(cc) = 2._dp*pi*pprecp(ii,jj,cc)%dwet *  &
                      zdfvap*pprecp(ii,jj,cc)%numc*pbetapa(cc)
-                zexpterm_pd(cc) = exp(-adt*zkelno3pd(cc)*zmtno3pd(cc)/zHp_pd(cc,1))   ! exponent term in Eq (17.104)
+
+                zhlp3 = max(-200._dp,-adt*zkelno3pd(cc)*zmtno3pd(cc)/zHp_pd(cc,1))           
+
+                zexpterm_pd(cc) = exp(zhlp3)                                          ! exponent term in Eq (17.104)
 
                 zsum1 = zsum1 + zcno3cpd(cc)*(1._dp-zexpterm_pd(cc))                  ! sum term in Eq (17.104) numerator
                 zsum2 = zsum2 + zHp_pd(cc,1)/zkelno3pd(cc)*(1._dp-zexpterm_pd(cc))    ! sum term in Eq (17.104) denominator
@@ -2216,7 +2225,9 @@ CONTAINS
                 zmtnh3ae(cc) = 2._dp*pi*paero(ii,jj,cc)%dwet *  &
                      zdfvap*paero(ii,jj,cc)%numc*pbeta(ii,jj,cc)
 
-                zexpterm_ae(cc)=exp(-adt*zkelnh3ae(cc)*zmtnh3ae(cc)/zHp_ae(cc,2))       ! exponent term in Eq (17.104)
+                zhlp3 = max(-200._dp,-adt*zkelnh3ae(cc)*zmtnh3ae(cc)/zHp_ae(cc,2))
+
+                zexpterm_ae(cc)=exp(zhlp3)                                              ! exponent term in Eq (17.104)
 
                 zsum1 = zsum1 + zcnh3cae(cc)*(1._dp-zexpterm_ae(cc))                    ! sum term in Eq (17.104) numerator
                 zsum2 = zsum2 + zHp_ae(cc,2)/zkelnh3ae(cc)*(1._dp-zexpterm_ae(cc))      ! sum term in Eq (17.104) denominator
@@ -2237,7 +2248,9 @@ CONTAINS
                 zmtnh3cd(cc) = 2._dp*pi*pcloud(ii,jj,cc)%dwet *  &
                      zdfvap*pcloud(ii,jj,cc)%numc*pbetaca(cc)
 
-                zexpterm_cd(cc)=exp(-adt*zkelnh3cd(cc)*zmtnh3cd(cc)/zHp_cd(cc,2))       ! exponent term in Eq (17.104)
+                zhlp3 = max(-200._dp,-adt*zkelnh3cd(cc)*zmtnh3cd(cc)/zHp_cd(cc,2))
+
+                zexpterm_cd(cc)=exp(zhlp3)                                              ! exponent term in Eq (17.104)
 
                 zsum1 = zsum1 + zcnh3ccd(cc)*(1._dp-zexpterm_cd(cc))                    ! sum term in Eq (17.104) numerator
                 zsum2 = zsum2 + zHp_cd(cc,2)/zkelnh3cd(cc)*(1._dp-zexpterm_cd(cc))      ! sum term in Eq (17.104) denominator
@@ -2258,7 +2271,9 @@ CONTAINS
                 zmtnh3pd(cc) = 2._dp*pi*pprecp(ii,jj,cc)%dwet *  &
                      zdfvap*pprecp(ii,jj,cc)%numc*pbetapa(cc)
 
-                zexpterm_pd(cc)=exp(-adt*zkelnh3pd(cc)*zmtnh3pd(cc)/zHp_pd(cc,2))       ! exponent term in Eq (17.104)
+                zhlp3 = max(-200._dp,-adt*zkelnh3pd(cc)*zmtnh3pd(cc)/zHp_pd(cc,2))
+
+                zexpterm_pd(cc)=exp(zhlp3)                                              ! exponent term in Eq (17.104)
 
                 zsum1 = zsum1 + zcnh3cpd(cc)*(1._dp-zexpterm_pd(cc))                    ! sum term in Eq (17.104) numerator
                 zsum2 = zsum2 + zHp_pd(cc,2)/zkelnh3pd(cc)*(1._dp-zexpterm_pd(cc))      ! sum term in Eq (17.104) denominator
