@@ -103,7 +103,7 @@ MODULE mo_submctl
   ! Process switches: nl* is read from the NAMELIST and NOT changed during runtime.
   !                   ls* is the switch actually used and will get the value of nl* 
   !                   except for special circumstances such as spinup period etc.
-  LOGICAL :: nlcoag    = .TRUE., & ! Coagulation master switch
+  LOGICAL :: nlcoag    = .FALSE., & ! Coagulation master switch
              lscoag
     LOGICAL :: nlcgaa  = .TRUE., & ! Coagulation between aerosols
                lscgaa
@@ -129,7 +129,7 @@ MODULE mo_submctl
 
     LOGICAL :: nlauto    = .FALSE.,   & ! Autoconversion of cloud droplets (needs activation)
                lsauto
-    LOGICAL :: nlactiv   = .TRUE.,   & ! Master switch for cloud droplet activation
+    LOGICAL :: nlactiv   = .FALSE.,   & ! Master switch for cloud droplet activation
                lsactiv              
     LOGICAL :: nlactintst = .TRUE.,  & ! Switch for interstitial activation: Use particle wet size determined by
                lsactintst = .TRUE.     ! codensation equations and supersaturation directly from the host model

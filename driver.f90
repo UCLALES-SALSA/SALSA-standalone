@@ -7,9 +7,11 @@ PROGRAM driver
                    ncld,   &
                    nprc,   &
                    rhosu,  &
+                   msu,    &
                    rhono,  &
                    rhonh,  &
                    rhowa,  &
+                   mwa,    &
                    mair,   &
                    rg,     &
                    avog,   &
@@ -20,6 +22,7 @@ PROGRAM driver
   USE mo_kind, ONLY: dp
   USE mo_salsa_cloud
   USE class_componentIndex
+  USE mo_salsa_dynamics, ONLY: satvaph2o
 
   IMPLICIT NONE
 
@@ -163,8 +166,7 @@ PROGRAM driver
   ! air density kg/m3
   pdn = mair*papp1(pnz-1,pnx-2,pny-2)/rg/ptp1(pnz-1,pnx-2,pny-2)
   ! Water vapor saturation mixing ratio (kg/m3)
-  rs = 0.622_dp*exp(20.386_dp-5132._dp/ptp1(pnz-1,pnx-2,pny-2))*133.32_dp/& 
-       papp1(pnz-1,pnx-2,pny-2)!*pdn(pnz-1,pnx-2,pny-2)
+  rs = mwa*satvaph2o(ptp1(pnz-1,pnx-2,pny-2))/(mair*papp1(pnz-1,pnx-2,pny-2))
 
   ! Water vapor mixing ratio (kg/m3)
   rv = relative_humidity*rs(pnz-1,pnx-2,pny-2)
@@ -414,8 +416,7 @@ PROGRAM driver
 END IF
      END DO
 
-     rs = 0.622_dp*exp(20.386_dp-5132._dp/ptp1(pnz-1,pnx-2,pny-2))*133.32_dp/& 
-          papp1(pnz-1,pnx-2,pny-2)!*pdn(pnz-1,pnx-2,pny-2)
+     rs = mwa*satvaph2o(ptp1(pnz-1,pnx-2,pny-2))/(mair*papp1(pnz-1,pnx-2,pny-2))
      str(2) = (nc(2)-1)
      str(4) = (nc(4)-1)
      write(13,*) pa_Radry(pnz-1,pnx-2,pny-2,1:nbins),pa_Rcwet(pnz-1,pnx-2,pny-2,1:ncld),pa_Rpwet(pnz-1,pnx-2,pny-2,1:nprc)

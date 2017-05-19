@@ -1042,7 +1042,7 @@ CONTAINS
     REAL(dp) :: zhlp1b(nbins), zhlp2b(nbins), zhlp3b(nbins)
 
     real(dp)::ztmst,zqtmst,        &
-         ztstep2, ztstep_pre,zthno3,ztnh3,zph2o,zphno3,zpnh3,zaw
+         ztstep2, zsubtime, ztstep_pre,zthno3,ztnh3,zph2o,zphno3,zpnh3,zaw
 
     REAL(dp) :: zrh(kbdim,klev)
     
@@ -1293,15 +1293,21 @@ CONTAINS
     ii = kproma
     jj = klev
     
-    IF(prv(ii,jj)/prs(ii,jj) >= 1._dp) THEN
-    ! -- 5.3) Water vapour 
+    ztstep2=0._dp
+    zsubtime = 0._dp
 
-       CALL gpparth2o(kproma,kbdim,klev,krow,  &
-                      paero, pcloud, pprecp,   &
-                      ptemp,ppres,prs,prv,     &
-                      ptstep)
+    DO ll = 4,0,-1
 
-    END IF
+       zsubtime = zsubtime + ztstep2
+
+       ztstep2 = ptstep/(10._dp**REAL(ll,dp)) - zsubtime
+       
+       ! -- 5.3) Water vapour 
+
+!       CALL gpparth2o(kproma,kbdim,klev,krow,  &
+!                      paero, pcloud, pprecp,   &
+!                      ptemp,ppres,prs,prv,     &
+!                      ztstep2)
 
     zvisc  = (7.44523e-3_dp*ptemp(ii,jj)**1.5_dp)/(5093._dp*(ptemp(ii,jj)+110.4_dp))! viscosity of air [kg/(m s)] 
     zdfvap = 5.1111e-10_dp*ptemp(ii,jj)**1.75_dp*pstand/ppres(ii,jj)                ! diffusion coefficient [m2/s]
@@ -1337,7 +1343,7 @@ CONTAINS
     ! -- 5.4) Partitioning of H2O, HNO3, and NH3
 
     CALL partitioning(kproma,kbdim,klev,krow,ppres,ptemp,paero,pcloud,   &
-         pprecp,pchno3,pcnh3,prv,prs,zbeta,zbetaca,zbetapa,ptstep     )
+         pprecp,pchno3,pcnh3,prv,prs,zbeta,zbetaca,zbetapa,ztstep2     )
 
 !    write(15,*) time,paero(1,1,in1a:fn2a)%volc(7)/(mnh/rhonh)+0.4399_dp*paero(1,1,in1a:fn2a)%volc(1)/(mnh/rhonh)/&
 !         (log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
@@ -1346,7 +1352,8 @@ CONTAINS
 !    write(16,*) time,paero(1,1,in1a:fn2a)%volc(6)/(mno/rhono)/(log((paero(1,1,in1a:fn2a)%vhilim/pi6)**1._dp/3._dp)- &
 !         log((paero(1,1,in1a:fn2a)%vlolim/pi6)**1._dp/3._dp)), &
 !         (sum(paero(1,1,:)%volc(6))+sum(pcloud(1,1,:)%volc(6))+sum(pprecp(1,1,:)%volc(6)))/(mno/rhono)+pchno3/avog
-      
+  END DO
+    
   END SUBROUTINE condensation
 
 !
@@ -1873,6 +1880,9 @@ CONTAINS
           zmtno3cd = 0._dp; zmtnh3cd = 0._dp
           zmtno3pd = 0._dp; zmtnh3pd = 0._dp
 
+          zcgno3eqae=0._dp
+          zcgnh3eqae=0._dp
+          zcgwaeqae=0._dp
 
           ! Get the equilibrium concentrations before condensation of water
 
@@ -1921,8 +1931,8 @@ CONTAINS
 
                 zexpterm_ae(cc) = exp(zhlp3)                                               ! exponent term in Eq (17.104)
 
-                   zsum1 = zsum1 + zcwacae(cc)*(1._dp-zexpterm_ae(cc))                     ! sum term in Eq (17.104) numerator
-                   zsum2 = zsum2 + zHp_ae(cc,3)/zkelwaae(cc)*(1._dp-zexpterm_ae(cc))       ! sum term in Eq (17.104) denominator
+                zsum1 = zsum1 + zcwacae(cc)*(1._dp-zexpterm_ae(cc))                        ! sum term in Eq (17.104) numerator
+                zsum2 = zsum2 + zHp_ae(cc,3)/zkelwaae(cc)*(1._dp-zexpterm_ae(cc))          ! sum term in Eq (17.104) denominator
 
              END IF
 
@@ -2220,7 +2230,8 @@ CONTAINS
 
                 zHp_ae(cc,2) = 1.e0_dp                                                  ! initialize
 
-                IF(zcgnh3eqae(cc) > 0._dp) zHp_ae(cc,2) = zcnh3cae(cc)/zcgnh3eqae(cc)   ! (17.99)
+                IF(zcgnh3eqae(cc) > 0._dp .AND. zcnh3cae(cc) > 0._dp) &
+                     zHp_ae(cc,2) = zcnh3cae(cc)/zcgnh3eqae(cc)   ! (17.99)
 
                 zmtnh3ae(cc) = 2._dp*pi*paero(ii,jj,cc)%dwet *  &
                      zdfvap*paero(ii,jj,cc)%numc*pbeta(ii,jj,cc)
@@ -2335,7 +2346,7 @@ CONTAINS
 
           pghno3(ii,jj) = zcno3n*avog       ! convert gas phase concentration to #/m3
           pgnh3(ii,jj) = zcnh3n*avog        !      "
-          IF(prv(ii,jj)/prs(ii,jj) < 1.0_dp) prv(ii,jj) = zcwan*mwa/zrhoair !      "            water concentration to kg/kg
+          IF(prv(ii,jj)/prs(ii,jj) < 0.98_dp) prv(ii,jj) = zcwan*mwa/zrhoair !      "            water concentration to kg/kg
 
        END DO
 
